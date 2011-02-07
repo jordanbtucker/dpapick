@@ -25,6 +25,41 @@ from crypto import *
 import hashlib
 from M2Crypto import *
 
+class RPC_SID:
+    def __init__(self, raw):
+        self._rawLen = 0
+        fmt = "<8B"
+        tmp = struct.unpack_from(fmt, raw, self._rawLen)
+        self._rawLen += struct.calcsize(fmt)
+        self._version = tmp[0]
+        self._nbSubAuthority = tmp[1]
+        self._idAuthority = tmp[2:]
+        fmt = "<%dL" % (self._nbSubAuthority)
+        tmp = struct.unpack_from(fmt, raw, self._rawLen)
+        self._rawLen += struct.calcsize(fmt)
+        self._SubAuthorities = tmp
+
+    def __str__(self):
+        from array import array
+        a = array("B", [0, 0])
+        a.extend(self._idAuthority)
+        authority = struct.unpack("!Q", a.tostring())[0]
+        s = "S-%d-%d" % (self._version, authority)
+        for i in range(self._nbSubAuthority):
+            s += "-%d" % (self._SubAuthorities[i])
+        return s
+
+    def getRawLength(self):
+        return self._rawLen
+
+    def __repr__(self):
+        return """
+        RPC_SID(%s):
+            revision: %d
+            identifier-authority: %r
+            subAuthorities: %r
+            """ % (self, self._version, self._idAuthority, self._SubAuthorities)
+
 class CredhistEntry:
     """Represents an entry in the Credhist file"""
     
@@ -52,15 +87,15 @@ class CredhistEntry:
             self._dataLen = tmp[5]
             self._hmacLen = tmp[6]
 
-            args["fmt"] = "<%uB" % (self._todo)
+            ## IV
+            args["fmt"] = "<16B"
             tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
             args["offset"] += struct.calcsize(args["fmt"])
             self._iv = "".join(map(chr,tmp))
 
-            args["fmt"] = "<4L"
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-            self._dwUserId = tmp
+            ## RPC_SID
+            self._userSID = RPC_SID(args["buffer"][args["offset"]:])
+            args["offset"] += self._userSID.getRawLength()
 
             n = self._dataLen + self._hmacLen
             if n % self._algoCipher.blockSize() > 0:
@@ -96,8 +131,7 @@ class CredhistEntry:
             "dataLen": self._dataLen,
             "hmacLen": self._hmacLen,
             "iv": self.getIV().encode('hex'),
-            "userid": map(hex,self._dwUserId),
-            "userSID": self.getUserSID(),
+            "userSID": self._userSID,
             "encrypted": self._encrypted.encode('hex'),
             "magic2": self._magic2,
             "entrysize": self._size,
@@ -121,8 +155,7 @@ class CredhistEntry:
         dwDataLen: %(dataLen)#x
         dwHmacLen: %(hmacLen)#x
         bIV: %(iv)s
-        dwUserId: %(userid)r
-        UserSID: %(userSID)s
+        UserSID: %(userSID)r
         bEncrypted: %(encrypted)s
         bData: %(data)s
         bHmac: %(hmac)s
@@ -135,7 +168,7 @@ class CredhistEntry:
 
     def getIV(self):
         if self.isParsed == True:
-            return self._iv[:16]
+            return self._iv
         else:
             return None
 
@@ -147,15 +180,7 @@ class CredhistEntry:
 
     def getUserSID(self):
         if self.isParsed == True:
-            return "S-%d-%d-%d-%d-%d-%d-%d" % (
-                    ord(self._iv[16]),
-                    ord(self._iv[16+1]),
-                    ord(self._iv[16+8]),
-                    self._dwUserId[0],
-                    self._dwUserId[1],
-                    self._dwUserId[2],
-                    self._dwUserId[3]
-                    )
+            return str(self._userSID)
         else:
             return None
 

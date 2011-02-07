@@ -47,6 +47,7 @@ class MasterKey:
 
     def decryptWithHash(self, h, userSID):
         ## Compute encryption key
+        userSID = userSID.upper()
         userSID += "\x00"
         userSID = userSID.encode("UTF-16LE")
 
@@ -93,23 +94,6 @@ class MasterKey:
 
         ## DomainKey
         #TODO
-        if self._domainkey != None:
-            cleartxt = dataDecrypt(
-                    self._domainkey["encrypted"],
-                    h,
-                    userSID,
-                    self._domainkey["cipherAlgo"],
-                    self._domainkey["salt"],
-                    self._domainkey["macAlgo"],
-                    self._domainkey["rounds"])
-            self._domainkey["keyValue"] = cleartxt
-            self._domainkey["hmacSalt"] = ""
-            self._domainkey["hmacValue"] = ""
-            self._domainkey["hmacComputed"] = "" #DpapiHmac(h, userSID,
-#                    self._domainkey["macAlgo"],
-#                    self._domainkey["hmacSalt"],
-#                    self._domainkey["keyValue"])
-            self._domainkey["isEncrypted"] = False
 
         return True
 
@@ -129,7 +113,7 @@ class MasterKey:
             return False
         if self._masterkey["isEncrypted"] == False:
             return True
-        return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest(), userSID)
+        return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest(), userSID.upper())
 
     def parse(self):
         try:
@@ -202,22 +186,25 @@ class MasterKey:
 
             if self._domainkeyLen > 0:
                 ## Domainkey block
-                args["fmt"] = "<L16B3L%uB" % (self._domainkeyLen)
+                args["fmt"] = "<3L16B"
                 tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
                 args["offset"] += struct.calcsize(args["fmt"])
 
                 self._domainkey = dict()
                 self._domainkey["version"] = tmp[0]
-                self._domainkey["salt"] = "".join(tmp[1:17])
-                self._domainkey["rounds"] = tmp[17]
-                self._domainkey["macAlgo"] = CryptoAlgo(tmp[18])
-                self._domainkey["cipherAlgo"] = CryptoAlgo(tmp[19])
-                self._domainkey["encrypted"] = "".join(map(chr, tmp[20:]))
-                self._domainkey["isEncrypted"] = True
-                self._domainkey["keyValue"] = '<ENCRYPTED>'
-                self._domainkey["hmacSalt"] = "<ENCRYPTED>"
-                self._domainkey["hmacValue"] = "<ENCRYPTED>"
-                self._domainkey["hmacComputed"] = "<ENCRYPTED>"
+                self._domainkey["firstKeyLen"] = tmp[1]
+                self._domainkey["secondKeyLen"] = tmp[2]
+                self._domainkey["salt"] = "".join(map(chr,tmp[3:]))
+                
+                args["fmt"] = "<%dB" % (self._domainkey["firstKeyLen"])
+                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
+                args["offset"] += struct.calcsize(args["fmt"])
+                self._domainkey["firstKey"] = "".join(map(chr,tmp))
+
+                args["fmt"] = "<%dB" % (self._domainkey["secondKeyLen"])
+                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
+                args["offset"] += struct.calcsize(args["fmt"])
+                self._domainkey["secondKey"] = "".join(map(chr,tmp))
 
         except Exception as e:
             self.isParsed = False
@@ -311,26 +298,16 @@ class MasterKey:
             if self._domainkey != None:
                 args = self._domainkey.copy()
                 args["salt"] = args["salt"].encode('hex')
-                args["encrypted"] = args["encrypted"].encode('hex')
-                if args["isEncrypted"] == False:
-                    args["hmacSalt"] = args["hmacSalt"].encode('hex')
-                    args["hmacValue"] = args["hmacValue"].encode('hex')
-                    args["hmacComputed"] = args["hmacComputed"].encode('hex')
-                    args["keyValue"] = args["keyValue"].encode('hex')
+                args["firstKey"] = args["firstKey"].encode('hex')
+                args["secondKey"] = args["secondKey"].encode('hex')
 
                 tplstr += """
 
                 DomainKey Block
                     dwBlockType: %(version)#x
                     bSalt: %(salt)s
-                    cbIteration: %(rounds)d (%(rounds)#x)
-                    MACAlgo: %(macAlgo)r
-                    CipherAlgo: %(cipherAlgo)r
-                    bCipheredKey: %(encrypted)s
-                    decryptedKey: %(keyValue)s
-                    hmacSalt: %(hmacSalt)s
-                    hmacValue: %(hmacValue)s
-                    hmacComputed: %(hmacComputed)s""" % args
+                    firstKey: (%(firstKeyLen)d bytes) %(firstKey)s
+                    secondKey: (%(secondKeyLen)d bytes) %(secondKey)s""" % args
 
             return tplstr
 
@@ -339,7 +316,8 @@ class MasterKeyPool:
         self._dict = dict()
         self._keys = dict()
 
-    def addMasterKey(self, raw, userSID="S-1-5-20"):
+    def addMasterKey(self, raw, userSID="S-1-5-18"):
+        userSID = userSID.upper()
         if userSID not in self._dict:
             self._dict[userSID] = dict()
         mkey = MasterKey(raw)
@@ -353,7 +331,8 @@ class MasterKeyPool:
             return True
         return False
 
-    def getMasterKey(self, keyGUID, userSID="S-1-5-20"):
+    def getMasterKey(self, keyGUID, userSID="S-1-5-18"):
+        userSID = userSID.upper()
         if keyGUID in self._keys:
             if len(self._keys[keyGUID]) == 1:
                 return self._keys[keyGUID][0]
