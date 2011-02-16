@@ -24,6 +24,26 @@ import hmac
 import struct
 from M2Crypto import *
 
+def CryptSessionKey(masterkey, nonce, hashAlgo='sha1', entropy="", strongPassword=""):
+    dg = hashlib.new(hashAlgo)
+    dg.update(masterkey)
+    masterkey = dg.digest()
+    dg = hashlib.new(hashAlgo)
+    masterkey += "\0"*64
+    ipad = "".join(chr(ord(masterkey[i]) ^ 0x36) for i in range(64))
+    opad = "".join(chr(ord(masterkey[i]) ^ 0x5c) for i in range(64))
+    dg.update(ipad)
+    dg.update(nonce)
+    tmp = dg.digest()
+    dg = hashlib.new(hashAlgo)
+    dg.update(opad)
+    dg.update(tmp)
+    if entropy != None and len(entropy) > 0:
+        dg.update(entropy)
+    if strongPassword != None and len(strongPassword) > 0:
+        dg.update(strongPassword)
+    return dg.digest()
+
 def CryptDeriveKey(h, digest='sha1'):
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
