@@ -22,7 +22,16 @@
 import hashlib
 import hmac
 import struct
+import array
 from M2Crypto import *
+
+
+
+def bitcount_B(x):
+    x = ((x&0xaa)>>1) + (x&0x55)
+    x = ((x&0xcc)>>2) + (x&0x33)
+    x = ((x&0xf0)>>4) + (x&0x0f)
+    return x
 
 def CryptDeriveKey(h, digest='sha1'):
     _dg = getattr(hashlib, digest)
@@ -33,15 +42,11 @@ def CryptDeriveKey(h, digest='sha1'):
     ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
     opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
     
-    tmp = _dg(ipad).digest() + _dg(opad).digest()
-    tmp = [ord(x) for x in tmp]
-    for i in range(0, len(tmp)):
-        if sum([int(x) for x in bin(tmp[i])[2:]]) % 2 == 0:
-            if tmp[i] % 2 == 1:
-                tmp[i] -= 1
-            else:
-                tmp[i] += 1
-    return "".join(map(chr, tmp))
+    tmp = array.array("B")
+    tmp.fromstring( _dg(ipad).digest() + _dg(opad).digest() )
+    for i,v in enumerate(tmp):
+        tmp[i] ^= (bitcount_B(v)^1)&1
+    return tmp.tostring()
     
 def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
     _dg = getattr(hashlib, digest)
