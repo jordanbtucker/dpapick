@@ -55,8 +55,8 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
     while len(buff) < keylen:
         i += 1
         init = mac.new(passphrase, salt + struct.pack("!L", i), _dg).digest()
-        U = init
-        for j in range(1, iterations):
+        while iterations > 0:
+            iterations -= 1
             U = mac.new(passphrase, init, _dg).digest()
             init = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(init, U)])
         buff += init
