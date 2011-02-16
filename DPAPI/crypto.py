@@ -28,14 +28,11 @@ def CryptDeriveKey(h, digest='sha1'):
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
         h = _dg(h).digest()
-    ipad = "\x36" * len(h)
-    opad = "\x5C" * len(h)
-    ipad = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(h, ipad)])
-    opad = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(h, opad)])
-    if len(ipad) < 64:
-        ipad = ipad + "\x36" * (64 - len(ipad))
-    if len(opad) < 64:
-        opad = opad + "\x5C" * (64 - len(opad))
+    h += "\0"*64
+    
+    ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
+    opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
+    
     tmp = _dg(ipad).digest() + _dg(opad).digest()
     tmp = [ord(x) for x in tmp]
     for i in range(0, len(tmp)):
