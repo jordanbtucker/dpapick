@@ -37,33 +37,8 @@ class DpapiBlob:
         if self.isEncrypted == False:
             return True
 
-        ## First compute the weird HMAC...
-        digest = hashlib.new(self._hashAlgo.str())
-        if len(masterkey) > 63:
-            digest.update(masterkey)
-            masterkey = digest.digest()
-            digest = hashlib.new(self._hashAlgo.str())
-        ipad = "\x36" * len(masterkey)
-        opad = "\x5C" * len(masterkey)
-        ipad = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(masterkey, ipad)])
-        opad = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(masterkey, opad)])
-        if len(ipad) < 64:
-            ipad = ipad + "\x36" * (64 - len(ipad))
-        if len(opad) < 64:
-            opad = opad + "\x5C" * (64 - len(opad))
-        digest.update(ipad)
-        digest.update(self._data)
-        tmp = digest.digest()
-        digest = hashlib.new(self._hashAlgo.str())
-        digest.update(opad)
-        digest.update(tmp)
-        if entropy != None and len(entropy) > 0:
-            digest.update(entropy)
-        if strongPassword != None and len(strongPassword) > 0:
-            digest.update(strongPassword)
-
-        ## Derive keys from it
-        keys = CryptDeriveKey(digest.digest(), self._hashAlgo.str())
+        ## Derive keys from masterkey and blob.data
+        keys = CryptDeriveKey(CryptSessionKey(masterkey, self._data, self._hashAlgo.str()), self._hashAlgo.str())
 
         ## Decrypt
         cipher = EVP.Cipher(self._cipherAlgo.m2name(), keys[:self._cipherAlgo.keyLength()], "\x00" * self._cipherAlgo.ivLength(), m2.decrypt, 0)
