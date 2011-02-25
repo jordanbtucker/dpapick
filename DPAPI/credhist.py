@@ -21,9 +21,9 @@
 
 import struct
 import string
-from crypto import *
 import hashlib
 from M2Crypto import *
+import crypto
 from eater import Eater, DataStruct
 
 
@@ -31,7 +31,7 @@ class RPC_SID(DataStruct):
     def parse(self, data):
         self.version = data.eat("B")
         n = data.eat("B")
-        self.idAuth = struct.unpack("<Q",data.eat("6s")+"\0\0")[0]
+        self.idAuth = struct.unpack(">Q","\0\0"+data.eat("6s"))[0]
         self.subAuth = data.eat("%dL" % n)
 
     def __str__(self):
@@ -48,16 +48,16 @@ class RPC_SID(DataStruct):
 class CredhistEntry(DataStruct):
     """Represents an entry in the Credhist file"""
     def __init__(self, raw=None):
-        self.password = None
+        self.pwdhash = None
         self.hmac = None
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
         self.revision = data.eat("L")
-        self.algoHash = CryptoAlgo(data.eat("L"))
+        self.hashAlgo = crypto.CryptoAlgo(data.eat("L"))
         self.rounds = data.eat("L")
         data.eat("L")
-        self.algoCipher = CryptoAlgo(data.eat("L"))
+        self.cipherAlgo = crypto.CryptoAlgo(data.eat("L"))
         self.dataLen = data.eat("L")
         self.hmacLen = data.eat("L")
         self.iv = data.eat("16s")
@@ -66,50 +66,47 @@ class CredhistEntry(DataStruct):
         self.userSID.parse(data)
 
         n = self.dataLen + self.hmacLen
-        n += -n % self.algoCipher.blockSize
+        n += -n % self.cipherAlgo.blockSize
         self.encrypted = data.eat_string(n)
         
         self.revision2 = data.eat("L")
-        self.guid = data.eat("16s")
+        self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
-    def decryptWithHash(self, h):
-
-        sid = (self.userSID+"\0").encode("UTF-16LE")
-        cleartxt = dataDecrypt(self.encrypted, h, sid, self.algoCipher,
-                               self.iv, self.algoHash, self.rounds)
-        self.password = cleartxt[:self.dataLen]
-        self.hmac = cleartxt[self.dataLen:self.dataLen+16]
+    def decryptWithHash(self, pwdhash):
+        utf_userSID = (str(self.userSID)+"\0").encode("UTF-16LE")
+        cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted, 
+                                      pwdhash, self.iv, utf_userSID, self.rounds)
+        self.pwdhash = cleartxt[:self.dataLen]
+        self.hmac = cleartxt[self.dataLen:self.dataLen+self.hmacLen]
 
         ##TODO: Compute & Verify HMAC
 
     def decryptWithPassword(self, password):
-        m = hashlib.sha1()
-        m.update(password.encode("UTF-16LE"))
-        return self.decryptWithHash(m.digest())
+        return self.decryptWithHash(hashlib.sha1(password.encode("UTF-16LE")).digest())
 
     def __repr__(self):
         s = ["""CredHist entry
         revision: %(revision)x
-        hash: %(algoHash)r
+        hash: %(hashAlgo)r
         rounds: %(rounds)i
-        cipher: %(algoCipher)r
+        cipher: %(cipherAlgo)r
         dataLen: %(dataLen)i
         hmacLen: %(hmacLen)i
         userSID: %(userSID)s""" % self.__dict__]
+        s.append("\tguid: %s" % self.guid)
         s.append("\tiv: %s" % self.iv.encode("hex"))
-        s.append("\tguid: %s" % self.guid.encode("hex"))
-        if self.password is not None:
-            s.append("\tpassword: %r %s" % (self.password, self.password.encode(hex)))
+        if self.pwdhash is not None:
+            s.append("\tpwdhash: %s" % self.pwdhash.encode("hex"))
         if self.hmac is not None:
-            s.append("\hmac: %r %s" % (self.hmac, self.hmac.encode(hex)))
+            s.append("\thmac        : %s" % self.hmac.encode("hex"))
         return "\n".join(s)
 
 
-class CredHistPool(DataStruct):
+class CredHistFile(DataStruct):
     def __init__(self, raw=None):
-        self.dico = dict()
-        self.guid = dict()
-        self.pool = []
+        self.entries_list = []
+        self.entries = {}
+        
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
@@ -120,61 +117,29 @@ class CredHistPool(DataStruct):
             self.addEntry(data.pop_string(l-4))
         
         self.footmagic = data.eat("L")
-        self.currpw = data.eat("16s")
-
+        self.curr_guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
     def addEntry(self, blob):
         x = CredhistEntry(blob)
-        self.guid[x.guid] = x
-        self.guid[x.guid.encode('hex')] = x
-        self.pool.append(x)
-
-    def lookupGUID(self, guid):
-        if guid == self.currpw:
-            return self.curhash
-        if guid in self.guid:
-            return self.guid[guid].hash
-        return None
-
-    def lookupHash(self, h):
-        return self.dico.get(h)
-
-    def addPassword(self, pwd):
-        m = hashlib.sha1()
-        m.update(pwd.encode("UTF-16LE"))
-        self.dico[m.digest()] = pwd
-        self.dico[m.hexdigest()] = pwd
-        self.curhash = m.digest()
-
-    def addWordlist(self, filename):
-        for w in open(filename, "r"):
-            self.addPassword(w.rstrip())
+        self.entries[x.guid] = x
+        self.entries_list.append(x)
  
     def decryptWithHash(self, h):
         curhash = h
-        for entry in self.pool:
-            try:
-                entry.decryptWithHash(curhash)
-                curhash = entry.getHash()
-                p = self.lookupHash(curhash)
-                if p != None:
-                    entry.setPassword(p)
-            except Exception:
-                return False
-        return True
+        for entry in self.entries_list:
+            entry.decryptWithHash(curhash)
+            curhash = entry.pwdhash
 
     def decryptWithPassword(self, pwd):
-        m = hashlib.sha1()
-        m.update(pwd.encode("UTF-16LE"))
-        self.dico[m.digest()] = pwd
-        self.dico[m.hexdigest()] = pwd
-        return self.decryptWithHash(m.digest())
+        return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest())
 
     def __repr__(self):
-        return """CredHistPool:  %s
-        pool = %r
-        dico = %r""" % (self.currpw.encode('hex'), self.pool, self.dico)
+        s = ["CredHistPool:  %s" % self.curr_guid]
+        for e in self.entries.itervalues():
+            s.append("---")
+            s.append(repr(e))
+        s.append("====")
+        return "\n".join(s)
     
-
 
 # vim:ts=4:expandtab:sw=4

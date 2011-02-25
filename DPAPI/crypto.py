@@ -27,43 +27,6 @@ from M2Crypto import *
 
 
 
-def bitcount_B(x):
-    x = ((x&0xaa)>>1) + (x&0x55)
-    x = ((x&0xcc)>>2) + (x&0x33)
-    x = ((x&0xf0)>>4) + (x&0x0f)
-    return x
-
-def CryptDeriveKey(h, digest='sha1'):
-    _dg = getattr(hashlib, digest)
-    if len(h) > 64:
-        h = _dg(h).digest()
-    h += "\0"*64
-    
-    ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
-    opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
-    
-    tmp = array.array("B")
-    tmp.fromstring( _dg(ipad).digest() + _dg(opad).digest() )
-    for i,v in enumerate(tmp):
-        tmp[i] ^= (bitcount_B(v)^1)&1
-    return tmp.tostring()
-    
-def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
-    _dg = getattr(hashlib, digest)
-    buff = ""
-    i = 0
-    while len(buff) < keylen:
-        i += 1
-        init = mac.new(passphrase, salt + struct.pack("!L", i), _dg).digest()
-        while iterations > 0:
-            iterations -= 1
-            U = mac.new(passphrase, init, _dg).digest()
-            init = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(init, U)])
-        buff += init
-    return buff[:keylen]
-
-
-
 class CryptoAlgo(object):
     class _Algo:
         def __init__(self, data):
@@ -121,29 +84,58 @@ CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
 
-def dataDecrypt(raw, password, hmacSalt, cipher, cipherSalt, h, rounds):
-    hh = h.name
-    if hh == "HMAC":
-        hh = "sha1"
-    dg = getattr(hashlib, hh)
-    encKey = hmac.new(password, hmacSalt, dg).digest()
-    tmp = pbkdf2(encKey, cipherSalt, cipher.keyLength + cipher.ivLength, rounds, hh)
-    cipher = EVP.Cipher(cipher.m2name,
-            tmp[:cipher.keyLength],
-            tmp[cipher.keyLength:],
-            m2.decrypt, 0)
+
+def bitcount_B(x):
+    x = ((x&0xaa)>>1) + (x&0x55)
+    x = ((x&0xcc)>>2) + (x&0x33)
+    x = ((x&0xf0)>>4) + (x&0x0f)
+    return x
+
+def CryptDeriveKey(h, digest='sha1'):
+    _dg = getattr(hashlib, digest)
+    if len(h) > 64:
+        h = _dg(h).digest()
+    h += "\0"*64
+    
+    ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
+    opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
+    
+    tmp = array.array("B")
+    tmp.fromstring( _dg(ipad).digest() + _dg(opad).digest() )
+    for i,v in enumerate(tmp):
+        tmp[i] ^= (bitcount_B(v)^1)&1
+    return tmp.tostring()
+    
+def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
+    _dg = getattr(hashlib, digest)
+    buff = ""
+    i = 0
+    while len(buff) < keylen:
+        i += 1
+        U = salt + struct.pack("!L", i)
+        init = "\0"*len(U)
+        for j in xrange(iterations):
+            U = mac.new(passphrase, U, _dg).digest()
+            init = U = "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(init, U)])
+        buff += init
+    return buff[:keylen]
+
+def dataDecrypt(cipherAlgo, hashAlgo, raw, pwdhash, iv, hmacSalt, rounds):
+    hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
+    dg = getattr(hashlib, hname)
+    encKey = hmac.new(pwdhash, hmacSalt, dg).digest()
+    derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
+    key,iv = derived[:cipherAlgo.keyLength],derived[cipherAlgo.keyLength:]
+    cipher = EVP.Cipher(cipherAlgo.m2name, key, iv,m2.decrypt, 0)
     cipher.set_padding(0)
-    cleartxt = cipher.update(raw)
-    cipher.final()
+    cleartxt = cipher.update(raw) + cipher.final()
     return cleartxt
 
-def DpapiHmac(password, hmacSalt, h, salt2, value):
-    hh = h.name
-    if hh == "HMAC":
-        hh = "sha1"
-    dg = getattr(hashlib, hh)
-    encKey = hmac.new(password, hmacSalt, dg).digest()
-    tmpmac = hmac.new(encKey, salt2, dg).digest()
-    return hmac.new(tmpmac, value, dg).digest()
+def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, hmacSalt2, value):
+    hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
+    dg = getattr(hashlib, hname)
+    encKey = hmac.new(pwdhash, hmacSalt, dg).digest()
+    encKey = hmac.new(encKey, hmacSalt2, dg).digest()
+    return hmac.new(encKey, value, dg).digest()
 
 # vim:ts=4:expandtab:sw=4
