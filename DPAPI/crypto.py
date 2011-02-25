@@ -62,82 +62,83 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
         buff += init
     return buff[:keylen]
 
-_dict = {
-    0x6603: { "name": "DES3", "keyLength": 192, "IVLength": 64, "blockLength": 64, "m2": "des_ede3_cbc" },
-    0x6609: { "name": "DES2", "keyLength": 128, "IVLength": 64, "blockLength": 64, "m2": "des_ede_cbc" },
-    0x6611: { "name": "AES", "keyLength": 128, "IVLength": 128, "blockLength": 128, "m2": "aes_128_cbc" },
-    0x660e: { "name": "AES-128", "keyLength": 128, "IVLength": 128, "blockLength": 128, "m2": "aes_128_cbc" },
-    0x660f: { "name": "AES-192", "keyLength": 192, "IVLength": 192, "blockLength": 128, "m2": "aes_192_cbc" },
-    0x6610: { "name": "AES-256", "keyLength": 256, "IVLength": 256, "blockLength": 128, "m2": "aes_256_cbc" },
-    0x6601: { "name": "DES", "keyLength": 64, "IVLength": 64, "blockLength": 64, "m2": "des_cbc" },
 
-    0x8009: { "name": "HMAC", "digestLength": 160, "blockLength": 512 },
-    0x8005: { "name": "MAC", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
-    0x8001: { "name": "md2", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
-    0x8002: { "name": "md4", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
-    0x8003: { "name": "md5", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
 
-    0x6602: { "name": "RC2", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
-    0x6801: { "name": "RC4", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
-    0x660d: { "name": "RC5", "keyLength": 0, "IVLength": 0, "blockLength": 0 },
+class CryptoAlgo(object):
+    class _Algo:
+        def __init__(self, data):
+            self.data=data
+        def __getattr__(self, attr):
+            if attr in self.data:
+                return self.data[attr]
+            raise AttributeError(attr)
 
-    0x8004: { "name": "sha1", "digestLength": 160, "blockLength": 512 },
-    0x800c: { "name": "sha256", "digestLength": 256, "blockLength": 512 },
-    0x800d: { "name": "sha384", "digestLength": 384, "blockLength": 1024 },
-    0x800e: { "name": "sha512", "digestLength": 512, "blockLength": 1024 },
-    }
+    _crypto_data = {}
+    @classmethod
+    def add_algo(cls, algnum, **kargs):
+        cls._crypto_data[algnum] = cls._Algo(kargs)
+    @classmethod
+    def get_algo(cls, algnum):
+        return cls._crypto_data[algnum]
 
-class CryptoAlgo:
     def __init__(self, i):
-        self._algo = i
-        self._dict = _dict
+        self.algnum = i
+        self.algo = CryptoAlgo.get_algo(i)
 
-    def value(self):
-        return self._algo
-
-    def m2name(self):
-        return self._dict[self._algo]["m2"]
-
-    def keyLength(self):
-        return self._dict[self._algo]["keyLength"] / 8
-
-    def ivLength(self):
-        return self._dict[self._algo]["IVLength"] / 8
-
-    def blockSize(self):
-        return self._dict[self._algo]["blockLength"] / 8
-
-    def digestLength(self):
-        return self._dict[self._algo]["digestLength"] / 8
-
-    def str(self):
-        return "%s" % self
-    
-    def __str__(self):
-        return self._dict[self._algo]["name"]
+    name = property(lambda self:self.algo.name)
+    m2name = property(lambda self:self.algo.m2)
+    keyLength = property(lambda self:self.algo.keyLength/8)
+    ivLength = property(lambda self: self.algo.IVLength/8)
+    blockSize = property(lambda self: self.algo.blockLength/8)
+    digestLength = property(lambda self: self.algo.digestLength/8)
 
     def __repr__(self):
-        return "%s [%#x]" % (self._dict[self._algo]["name"], self._algo)
+        return "%s [%#x]" % (self.algo.name, self.algnum)
+
+
+CryptoAlgo.add_algo(0x6603, name="DES3",    keyLength=192, IVLength=64,  blockLength=64,  m2="des_ede3_cbc")
+CryptoAlgo.add_algo(0x6609, name="DES2",    keyLength=128, IVLength=64,  blockLength=64,  m2="des_ede_cbc")
+CryptoAlgo.add_algo(0x6611, name="AES",     keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
+CryptoAlgo.add_algo(0x660e, name="AES-128", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
+CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=192, blockLength=128, m2="aes_192_cbc")
+CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=256, blockLength=128, m2="aes_256_cbc")
+CryptoAlgo.add_algo(0x6601, name="DES",     keyLength=64,  IVLength=64,  blockLength=64,  m2="des_cbc")
+
+CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
+CryptoAlgo.add_algo(0x8005, name="MAC",  keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x8001, name="md2",  keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x8002, name="md4",  keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x8003, name="md5",  keyLength=0, IVLength=0, blockLength=0)
+
+CryptoAlgo.add_algo(0x6602, name="RC2", keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x6801, name="RC4", keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x660d, name="RC5", keyLength=0, IVLength=0, blockLength=0)
+
+CryptoAlgo.add_algo(0x8004, name="sha1",   digestLength=160, blockLength=512)
+CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
+CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
+CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
+
+
 
 def dataDecrypt(raw, password, hmacSalt, cipher, cipherSalt, h, rounds):
-    hh = h.str()
+    hh = h.name
     if hh == "HMAC":
         hh = "sha1"
     dg = getattr(hashlib, hh)
     encKey = hmac.new(password, hmacSalt, dg).digest()
-    tmp = pbkdf2(encKey, cipherSalt, cipher.keyLength() + cipher.ivLength(),
-            rounds, hh)
-    cipher = EVP.Cipher(cipher.m2name(),
-            tmp[:cipher.keyLength()],
-            tmp[cipher.keyLength():],
+    tmp = pbkdf2(encKey, cipherSalt, cipher.keyLength + cipher.ivLength, rounds, hh)
+    cipher = EVP.Cipher(cipher.m2name,
+            tmp[:cipher.keyLength],
+            tmp[cipher.keyLength:],
             m2.decrypt, 0)
     cipher.set_padding(0)
     cleartxt = cipher.update(raw)
     cipher.final()
     return cleartxt
 
-def DpapiHmac(password, hmacSalt, hash, salt2, value):
-    hh = hash.str()
+def DpapiHmac(password, hmacSalt, h, salt2, value):
+    hh = h.name
     if hh == "HMAC":
         hh = "sha1"
     dg = getattr(hashlib, hh)
