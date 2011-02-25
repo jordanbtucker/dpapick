@@ -19,326 +19,174 @@
 ##                                                                         ##
 #############################################################################
 
-import struct
 import string
-from crypto import *
+import crypto
+import hashlib
+from collections import defaultdict
+from eater import Eater, DataStruct
 
-class MasterKey:
 
-    def __init__(self, raw):
-        self._raw = raw
-        self.isParsed = False
 
-    def getGUID(self):
-        if self.isParsed == True:
-            return self._keyGUID
-        return None
+class MasterKey(DataStruct):
+    def __init__(self, raw=None):
+        self.keyValue = None
+        self.hmacSalt= None
+        self.hmacValue = None
+        self.hmacComputed = None
+        self.decrypted = False
+        DataStruct.__init__(self, raw)
+        
+    def parse(self, data):
+        self.version = data.eat("L")
+        self.salt = data.eat("16s")
+        self.rounds = data.eat("L")
+        self.macAlgo = crypto.CryptoAlgo(data.eat("L"))
+        self.cipherAlgo = crypto.CryptoAlgo(data.eat("L"))
+        self.encrypted = data.remain()
 
-    def getCredhistGUID(self):
-        if self._credHist != None:
-            return self._credHist["guid"]
-        return None
-
-    def getValue(self):
-        if self._masterkey != None:
-            if self._masterkey["isEncrypted"] == False:
-                return self._masterkey["keyValue"]
-        return None
-
-    def decryptWithHash(self, h, userSID):
+    def decryptWithHash(self, userSID, h):
         ## Compute encryption key
-        userSID = userSID.upper()
-        userSID += "\x00"
+        userSID = userSID.upper()+"\0"
         userSID = userSID.encode("UTF-16LE")
 
-        ## Masterkey
-        if self._masterkey != None:
-            cleartxt = dataDecrypt(
-                    self._masterkey["encrypted"],
-                    h,
-                    userSID,
-                    self._masterkey["cipherAlgo"],
-                    self._masterkey["salt"],
-                    self._masterkey["macAlgo"],
-                    self._masterkey["rounds"])
-            self._masterkey["keyValue"] = cleartxt[-64:]
-            self._masterkey["hmacSalt"] = cleartxt[:16]
-            hmacValue = cleartxt[16:]
-            hmacValue = hmacValue[:self._masterkey["macAlgo"].digestLength()]
-            self._masterkey["hmacValue"] = hmacValue
-            self._masterkey["hmacComputed"] = DpapiHmac(h, userSID,
-                    self._masterkey["macAlgo"],
-                    self._masterkey["hmacSalt"],
-                    self._masterkey["keyValue"])
-            self._masterkey["isEncrypted"] = False
+        cleartxt = crypto.dataDecrypt(self.encrypted, h, userSID, self.cipherAlgo, 
+                                      self.salt, self.macAlgo, self.rounds)
 
-        ## BackupKey
-        ## TODO: seems to use a different scheme...
-        if self._backupkey != None:
-            cleartxt = dataDecrypt(
-                    self._backupkey["encrypted"],
-                    h,
-                    userSID,
-                    self._backupkey["cipherAlgo"],
-                    self._backupkey["salt"],
-                    self._backupkey["macAlgo"],
-                    self._backupkey["rounds"])
-            self._backupkey["keyValue"] = cleartxt
-            self._backupkey["hmacSalt"] = ""
-            self._backupkey["hmacValue"] = ""
-            self._backupkey["hmacComputed"] = "" #DpapiHmac(h, userSID,
-    #                self._backupkey["macAlgo"],
-    #                self._backupkey["hmacSalt"],
-    #                self._backupkey["keyValue"])
-            self._backupkey["isEncrypted"] = False
-
-        ## DomainKey
-        #TODO
-
-        return True
-
-    def compareHMAC(self):
-        if self._masterkey == None:
-            return False
-        if "hmacValue" not in self._masterkey:
-            return False
-        if "hmacComputed" not in self._masterkey:
-            return False
-        if len(self._masterkey["hmacComputed"]) < 10:
-            return False
-        return self._masterkey["hmacValue"] == self._masterkey["hmacComputed"]
-
-    def decryptWithPassword(self, pwd, userSID):
-        if self.isParsed == False:
-            return False
-        if self._masterkey["isEncrypted"] == False:
-            return True
-        return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest(), userSID.upper())
-
-    def parse(self):
-        try:
-            args = { "offset": 0, "fmt": "", "buffer": self._raw }
-
-            ## Header
-            args["fmt"] = "<3L36H3L4Q"
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-
-            self._version = tmp[0]
-            self._keyGUID = tmp[3:39]
-            self._domainkeyLen = tmp[-1]
-            self._credHistLen = tmp[-2]
-            self._backupkeyLen = tmp[-3]
-            self._masterkeyLen = tmp[-4]
-            self._masterkey = None
-            self._backupkey = None
-            self._credHist = None
-            self._domainkey = None
-            self._flags = tmp[-5]
-
-            if self._masterkeyLen > 0:
-                ## Masterkey block
-                args["fmt"] = "<L16B3L%uB" % (self._masterkeyLen - struct.calcsize("<L16B3L"))
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-
-                self._masterkey = dict()
-                self._masterkey["version"] = tmp[0]
-                self._masterkey["salt"] = "".join(map(chr, tmp[1:17]))
-                self._masterkey["rounds"] = tmp[17]
-                self._masterkey["macAlgo"] = CryptoAlgo(tmp[18])
-                self._masterkey["cipherAlgo"] = CryptoAlgo(tmp[19])
-                self._masterkey["encrypted"] = "".join(map(chr, tmp[20:]))
-                self._masterkey["isEncrypted"] = True
-                self._masterkey["keyValue"] = '<ENCRYPTED>'
-                self._masterkey["hmacSalt"] = "<ENCRYPTED>"
-                self._masterkey["hmacValue"] = "<ENCRYPTED>"
-                self._masterkey["hmacComputed"] = "<ENCRYPTED>"
-
-            if self._backupkeyLen > 0:
-                ## Backupkey block
-                args["fmt"] = "<L16B3L%uB" % (self._backupkeyLen - struct.calcsize("<L16B3L"))
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-
-                self._backupkey = dict()
-                self._backupkey["version"] = tmp[0]
-                self._backupkey["salt"] = "".join(map(chr, tmp[1:17]))
-                self._backupkey["rounds"] = tmp[17]
-                self._backupkey["macAlgo"] = CryptoAlgo(tmp[18])
-                self._backupkey["cipherAlgo"] = CryptoAlgo(tmp[19])
-                self._backupkey["encrypted"] = "".join(map(chr, tmp[20:]))
-                self._backupkey["isEncrypted"] = True
-                self._backupkey["keyValue"] = '<ENCRYPTED>'
-                self._backupkey["hmacSalt"] = "<ENCRYPTED>"
-                self._backupkey["hmacValue"] = "<ENCRYPTED>"
-                self._backupkey["hmacComputed"] = "<ENCRYPTED>"
-
-            if self._credHistLen > 0:
-                ## Credhist GUID block
-                args["fmt"] = "<L%uB" % (self._credHistLen - struct.calcsize("<L"))
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-
-                self._credHist = dict()
-                self._credHist["magic"] = tmp[0]
-                self._credHist["guid"] = "".join(map(chr, tmp[1:]))
-
-            if self._domainkeyLen > 0:
-                ## Domainkey block
-                args["fmt"] = "<3L16B"
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-
-                self._domainkey = dict()
-                self._domainkey["version"] = tmp[0]
-                self._domainkey["firstKeyLen"] = tmp[1]
-                self._domainkey["secondKeyLen"] = tmp[2]
-                self._domainkey["salt"] = "".join(map(chr,tmp[3:]))
-                
-                args["fmt"] = "<%dB" % (self._domainkey["firstKeyLen"])
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-                self._domainkey["firstKey"] = "".join(map(chr,tmp))
-
-                args["fmt"] = "<%dB" % (self._domainkey["secondKeyLen"])
-                tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-                args["offset"] += struct.calcsize(args["fmt"])
-                self._domainkey["secondKey"] = "".join(map(chr,tmp))
-
-        except Exception as e:
-            self.isParsed = False
-        else:
-            self.isParsed = True
-        finally:
-            return self.isParsed
+        self.keyValue = cleartxt[-64:]
+        self.hmacSalt = cleartxt[:16]
+        self.hmacValue = cleartxt[16:16+self.macAlgo.digestLength]
+        self.hmacComputed = crypto.DpapiHmac(h, userSID, self.macAlgo,
+                                             self.hmacSalt, self.keyValue)
+        self.decrypted = self.hmacValue == self.hmacComputed
 
     def __repr__(self):
-        if self.isParsed == False:
-            return """
-            MasterKey(RAW): %s""" % (self._raw.encode('hex'))
+        s = ["  + Masterkey block"]
+        s.append("        version\t= %i" % self.version)
+        s.append("        salt\t= %s" % self.salt.encode("hex"))
+        s.append("        rounds\t= %i" % self.rounds)
+        s.append("        macalgo\t= %s" % repr(self.macAlgo))
+        s.append("        cipheralgo\t= %s" % repr(self.cipherAlgo))
+        if self.decrypted:
+            s.append("        keyValue\t= %s" % self.keyValue.encode("hex"))
+            s.append("        hmacSalt\t= %s" % self.hmacSalt.encode("hex"))
+            s.append("        hmacValue\t= %s" % self.hmacValue.encode("hex"))
+            s.append("        hmacComputed\t= %s" % self.hmacComputed.encode("hex"))
         else:
-            d = {
-                    "version": self._version,
-                    "guid": "".join(map(chr, self._keyGUID)),
-                    "flags": self._flags,
-                    "mkeyLen": self._masterkeyLen,
-                    "bkLen": self._backupkeyLen,
-                    "credhistLen": self._credHistLen,
-                    "domainLen": self._domainkeyLen
-                    }
-            tplstr = """
-            MasterKey(%(guid)s):
-                dwVersion: %(version)#x
-                szGUID: %(guid)s
-                dwFlags: %(flags)#x
-                cbMasterKey: %(mkeyLen)d (%(mkeyLen)#x)
-                cbBackupKey: %(bkLen)d (%(bkLen)#x)
-                cbCredHist: %(credhistLen)d (%(credhistLen)#x)
-                cbDomainKey: %(domainLen)d (%(domainLen)#x)""" % d
+            s.append("        encrypted= %s" % self.encrypted.encode("hex"))
+        return "\n".join(s)
 
-            if self._masterkey != None:
-                args = self._masterkey.copy()
-                args["salt"] = args["salt"].encode('hex')
-                args["encrypted"] = args["encrypted"].encode('hex')
-                if args["isEncrypted"] == False:
-                    args["hmacSalt"] = args["hmacSalt"].encode('hex')
-                    args["hmacValue"] = args["hmacValue"].encode('hex')
-                    args["hmacComputed"] = args["hmacComputed"].encode('hex')
-                    args["keyValue"] = args["keyValue"].encode('hex')
 
-                tplstr += """
+class CredHist(DataStruct):
+    def parse(self, data):
+        self.magic = data.eat("L")
+        self.guid = data.remain()
+    def __repr__(self):
+        s = ["  + CredHist block"]
+        s.append("        magic\t= %(magic)d %(magic)#x" % self.__dict__)
+        s.append("        guid\t= %s" % self.guid.encode("hex"))
+        return "\n".join(s)
 
-                MasterKey Block
-                    dwBlockType: %(version)#x
-                    bSalt: %(salt)s
-                    cbIteration: %(rounds)d (%(rounds)#x)
-                    MACAlgo: %(macAlgo)r
-                    CipherAlgo: %(cipherAlgo)r
-                    bCipheredKey: %(encrypted)s
-                    decryptedKey: %(keyValue)s
-                    hmacSalt: %(hmacSalt)s
-                    hmacValue: %(hmacValue)s
-                    hmacComputed: %(hmacComputed)s""" % args
+class DomainKey(DataStruct):
+    def parse(self, data):
+        self.version = data.eat("L")
+        self.firstKeyLen = data.eat("L")
+        self.secondKeyLen = data.eat("L")
+        self.salt = data.eat("16s")
+        self.firstKey = data.eat("%us" % self.firstKeyLen)
+        self.secondKey = data.eat("%us" % self.secondKeyLen)
+    def __repr__(self):
+        s = ["  + DomainKey block"]
+        s.append("        version\t= %x" % self.version)
+        s.append("        salt\t= %x" % self.salt.encode("hex"))
+        s.append("        firstKey\t= %x" % self.firstKey.encode("hex"))
+        s.append("        secondKey\t= %x" % self.secondKey.encode("hex"))
+        return "\n".join(s)
 
-            if self._backupkey != None:
-                args = self._backupkey.copy()
-                args["salt"] = args["salt"].encode('hex')
-                args["encrypted"] = args["encrypted"].encode('hex')
-                if args["isEncrypted"] == False:
-                    args["hmacSalt"] = args["hmacSalt"].encode('hex')
-                    args["hmacValue"] = args["hmacValue"].encode('hex')
-                    args["hmacComputed"] = args["hmacComputed"].encode('hex')
-                    args["keyValue"] = args["keyValue"].encode('hex')
+class MasterKeyFile(DataStruct):
+    def __init__(self, raw=None):
+        self.masterkey = None
+        self.backupkey = None
+        self.credhist = None
+        self.domainkey = None
+        self.decrypted = False
+        DataStruct.__init__(self, raw)
+        
+    def parse(self, data):
+        self.version = data.eat("L")
+        data.eat("2L")
+        self.keyGUID = data.eat("72s").decode("UTF-16LE")
+        data.eat("2L")
+        self.flags = data.eat("L")
+        self.masterkeyLen = data.eat("Q")
+        self.backupkeyLen = data.eat("Q")
+        self.credhistLen = data.eat("Q")
+        self.domainkeyLen = data.eat("Q")
+        
+        if self.masterkeyLen > 0:
+            self.masterkey = MasterKey()
+            self.masterkey.parse(data.eat_sub(self.masterkeyLen))
+        if self.backupkeyLen > 0:
+            self.backupkey = MasterKey()
+            self.backupkey.parse(data.eat_sub(self.backupkeyLen))
+        if self.credhistLen > 0:
+            self.credhist = CredHist()
+            self.credhist.parse(data.eat_sub(self.credhistLen))
+        if self.domainkeyLen > 0:
+            self.domainkey = Domainkey()
+            self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
-                tplstr += """
+    def decryptWithPassword(self, userSID, pwd):
+        return self.decryptWithHash(userSID, hashlib.sha1(pwd.encode("UTF-16LE")).digest())
 
-                BackupKey Block
-                    dwBlockType: %(version)#x
-                    bSalt: %(salt)s
-                    cbIteration: %(rounds)d (%(rounds)#x)
-                    MACAlgo: %(macAlgo)r
-                    CipherAlgo: %(cipherAlgo)r
-                    bCipheredKey: %(encrypted)s
-                    decryptedKey: %(keyValue)s
-                    hmacSalt: %(hmacSalt)s
-                    hmacValue: %(hmacValue)s
-                    hmacComputed: %(hmacComputed)s""" % args
+    def decryptWithHash(self, userSID, h):
+        self.masterkey.decryptWithHash(userSID, h)
+        self.backupkey.decryptWithHash(userSID, h)
+        self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
+    
+    def get_key(self):
+        if self.masterkey.decrypted:
+            return self.masterkey.keyValue
+        elif self.backupkey.decrypted:
+            return self.backupkey.keyValue
+        
 
-            if self._credHist != None:
-                args = self._credHist.copy()
-                args["guid"] = args["guid"].encode("hex")
+    def __repr__(self):
+        s = ["\n#### MasterKeyFile %s ####" % self.keyGUID]
+        s.append("""        dwVersion: %(version)#x
+        dwFlags: %(flags)#x
+        cbMasterKey: %(masterkeyLen)d (%(masterkeyLen)#x)
+        cbBackupKey: %(backupkeyLen)d (%(backupkeyLen)#x)
+        cbCredHist: %(credhistLen)d (%(credhistLen)#x)
+        cbDomainKey: %(domainkeyLen)d (%(domainkeyLen)#x)""" % self.__dict__)
+        if self.masterkey:
+            s.append(repr(self.masterkey))
+        if self.backupkey:
+            s.append(repr(self.backupkey))
+        if self.credhist:
+            s.append(repr(self.credhist))
+        if self.domainkey:
+            s.append(repr(self.domainkey))
+        return "\n".join(s)
 
-                tplstr += """
-
-                CredHist:
-                    dwBlockType: %(magic)d (%(magic)#x)
-                    bCredHistGUID: %(guid)s""" % args
-
-            if self._domainkey != None:
-                args = self._domainkey.copy()
-                args["salt"] = args["salt"].encode('hex')
-                args["firstKey"] = args["firstKey"].encode('hex')
-                args["secondKey"] = args["secondKey"].encode('hex')
-
-                tplstr += """
-
-                DomainKey Block
-                    dwBlockType: %(version)#x
-                    bSalt: %(salt)s
-                    firstKey: (%(firstKeyLen)d bytes) %(firstKey)s
-                    secondKey: (%(secondKeyLen)d bytes) %(secondKey)s""" % args
-
-            return tplstr
 
 class MasterKeyPool:
     def __init__(self):
-        self._dict = dict()
-        self._keys = dict()
+        self.users = defaultdict(lambda: {})
+        self.keys = defaultdict(lambda: [])
 
     def addMasterKey(self, raw, userSID="S-1-5-18"):
         userSID = userSID.upper()
-        if userSID not in self._dict:
-            self._dict[userSID] = dict()
-        mkey = MasterKey(raw)
-        if mkey.parse() == True:
-            keyID = "".join(map(chr, mkey.getGUID()))
-            self._dict[userSID][keyID] = mkey
-            if keyID in self._keys:
-                self._keys[keyID].append(mkey)
-            else:
-                self._keys[keyID] = [ mkey ]
-            return True
-        return False
+        mkey = MasterKeyFile(raw)
+        self.users[userSID][mkey.keyGUID] = mkey
+        self.keys[mkey.keyGUID].append(mkey)
 
     def getMasterKey(self, keyGUID, userSID="S-1-5-18"):
         userSID = userSID.upper()
-        if keyGUID in self._keys:
-            if len(self._keys[keyGUID]) == 1:
-                return self._keys[keyGUID][0]
-            if userSID in self._dict and keyGUID in self._dict[userSID]:
-                return self._dict[userSID][keyGUID]
-            print "Eh merde..."
+        if keyGUID in self.keys:
+            if len(self.keys[keyGUID]) == 1:
+                return self.keys[keyGUID][0]
+            if userSID in self.users and keyGUID in self.users[userSID]:
+                return self.users[userSID][keyGUID]
         return None
 
     def __repr__(self):
@@ -346,6 +194,6 @@ class MasterKeyPool:
         MasterKeyPool:
         dict = %r
         keys = %r
-        """ % (self._dict, self._keys)
+        """ % (self.users.items(), self.keys.items())
 
 # vim:ts=4:expandtab:sw=4
