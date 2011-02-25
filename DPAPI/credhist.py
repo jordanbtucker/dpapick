@@ -24,256 +24,135 @@ import string
 from crypto import *
 import hashlib
 from M2Crypto import *
+from eater import Eater, DataStruct
 
-class RPC_SID:
-    def __init__(self, raw):
-        self._rawLen = 0
-        fmt = "<8B"
-        tmp = struct.unpack_from(fmt, raw, self._rawLen)
-        self._rawLen += struct.calcsize(fmt)
-        self._version = tmp[0]
-        self._nbSubAuthority = tmp[1]
-        self._idAuthority = tmp[2:]
-        fmt = "<%dL" % (self._nbSubAuthority)
-        tmp = struct.unpack_from(fmt, raw, self._rawLen)
-        self._rawLen += struct.calcsize(fmt)
-        self._SubAuthorities = tmp
+
+class RPC_SID(DataStruct):
+    def parse(self, data):
+        self.version = data.eat("B")
+        n = data.eat("B")
+        self.idAuth = struct.unpack("<Q",data.eat("6s")+"\0\0")[0]
+        self.subAuth = data.eat("%dL" % n)
 
     def __str__(self):
-        from array import array
-        a = array("B", [0, 0])
-        a.extend(self._idAuthority)
-        authority = struct.unpack("!Q", a.tostring())[0]
-        s = "S-%d-%d" % (self._version, authority)
-        for i in range(self._nbSubAuthority):
-            s += "-%d" % (self._SubAuthorities[i])
-        return s
-
-    def getRawLength(self):
-        return self._rawLen
+        s = ["S-%d-%d" % (self.version, self.idAuth)]
+        s += ["%d" % x for x in self.subAuth]
+        return "-".join(s)
 
     def __repr__(self):
-        return """
-        RPC_SID(%s):
-            revision: %d
-            identifier-authority: %r
-            subAuthorities: %r
-            """ % (self, self._version, self._idAuthority, self._SubAuthorities)
+        return """RPC_SID(%s):
+        revision: %d
+        identifier-authority: %r
+        subAuthorities: %r""" % (self, self.version, self.idAuth, self.subAuth)
 
-class CredhistEntry:
+class CredhistEntry(DataStruct):
     """Represents an entry in the Credhist file"""
-    
-    def __init__(self, raw):
-        """Initialize the object with raw bytes"""
-        self._raw = raw
-        self._clear = None
-        self.isParsed = False
+    def __init__(self, raw=None):
+        self.password = None
+        self.hmac = None
+        DataStruct.__init__(self, raw)
 
-    def setPassword(self, p):
-        self._clear = p
+    def parse(self, data):
+        self.revision = data.eat("L")
+        self.algoHash = CryptoAlgo(data.eat("L"))
+        self.rounds = data.eat("L")
+        data.eat("L")
+        self.algoCipher = CryptoAlgo(data.eat("L"))
+        self.dataLen = data.eat("L")
+        self.hmacLen = data.eat("L")
+        self.iv = data.eat("16s")
 
-    def parse(self):
-        """Unpack the object and returns boolean wether it was successfull or not"""
-        try:
-            args = { "offset": 0, "fmt": "", "buffer": self._raw }
-            args["fmt"] = "<7L"
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-            self._magic = tmp[0]
-            self._algoHash = CryptoAlgo(tmp[1])
-            self._rounds = tmp[2]
-            self._todo = tmp[3]
-            self._algoCipher = CryptoAlgo(tmp[4])
-            self._dataLen = tmp[5]
-            self._hmacLen = tmp[6]
+        self.userSID = RPC_SID()
+        self.userSID.parse(data)
 
-            ## IV
-            args["fmt"] = "<16B"
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-            self._iv = "".join(map(chr,tmp))
-
-            ## RPC_SID
-            self._userSID = RPC_SID(args["buffer"][args["offset"]:])
-            args["offset"] += self._userSID.getRawLength()
-
-            n = self._dataLen + self._hmacLen
-            if n % self._algoCipher.blockSize() > 0:
-                n = self._algoCipher.blockSize() * (n / self._algoCipher.blockSize() + 1)
-            args["fmt"] = "<%uB" % (n)
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-            self._encrypted = "".join(map(chr,tmp))
-
-            args["fmt"] = "<L16BL"
-            tmp = struct.unpack_from(args["fmt"], args["buffer"], args["offset"])
-            args["offset"] += struct.calcsize(args["fmt"])
-            self._magic2 = tmp[0]
-            self._guid = "".join(map(chr,tmp[1:17]))
-            self._size = tmp[-1]
-
-        except Exception as e:
-            self.isParsed = False
-        else:
-            self.isParsed = True
-            self.isEncrypted = True
-        finally:
-            return self.isParsed
-
-    def __repr__(self):
-        d = {
-            "guid": self._guid.encode('hex'),
-            "magic": self._magic,
-            "algo": self._algoHash,
-            "rounds": self._rounds,
-            "todo": self._todo,
-            "cipher": self._algoCipher,
-            "dataLen": self._dataLen,
-            "hmacLen": self._hmacLen,
-            "iv": self.getIV().encode('hex'),
-            "userSID": self._userSID,
-            "encrypted": self._encrypted.encode('hex'),
-            "magic2": self._magic2,
-            "entrysize": self._size,
-            "data": "<ENCRYPTED>",
-            "hmac": "<ENCRYPTED>",
-            "password": ""
-        }
-        if self._clear != None:
-            d["password"] = "'%s'" % (self._clear)
-        if self.isEncrypted == False:
-            d["data"] = self._password.encode('hex')
-            d["hmac"] = self._hmac.encode('hex')
-        if self.isParsed == True:
-            return """
-    CredHistEntry(%(guid)s): %(password)s
-        dwMagic: %(magic)#x
-        dwAlgoHash: %(algo)r
-        dwRounds: %(rounds)#x
-        dwTodo: %(todo)#x
-        dwCipherAlgo: %(cipher)r
-        dwDataLen: %(dataLen)#x
-        dwHmacLen: %(hmacLen)#x
-        bIV: %(iv)s
-        UserSID: %(userSID)r
-        bEncrypted: %(encrypted)s
-        bData: %(data)s
-        bHmac: %(hmac)s
-        dwMagic2: %(magic2)#x
-        bGUID: %(guid)s
-        dwEntrySize: %(entrysize)u (%(entrysize)#x)
-    """ % d
-        else:
-            return "CredHistEntry(RAW): %s" % (self._raw.encode('hex'))
-
-    def getIV(self):
-        if self.isParsed == True:
-            return self._iv
-        else:
-            return None
-
-    def getGUID(self):
-        if self.isParsed == True:
-            return self._guid
-        else:
-            return None
-
-    def getUserSID(self):
-        if self.isParsed == True:
-            return str(self._userSID)
-        else:
-            return None
+        n = self.dataLen + self.hmacLen
+        n += -n % self.algoCipher.blockSize
+        self.encrypted = data.eat_string(n)
+        
+        self.revision2 = data.eat("L")
+        self.guid = data.eat("16s")
 
     def decryptWithHash(self, h):
-        if self.isParsed == False:
-            return False
-        sid = self.getUserSID()
-        sid += "\0"
-        sid = sid.encode("UTF-16LE")
-        cleartxt = dataDecrypt(self._encrypted,
-                h, sid, self._algoCipher,
-                self.getIV(), self._algoHash, self._rounds)
-        self._password = cleartxt[:self._dataLen]
-        self._hmac = cleartxt[self._dataLen:]
-        self._hmac = self._hmac[:16]
+
+        sid = (self.userSID+"\0").encode("UTF-16LE")
+        cleartxt = dataDecrypt(self.encrypted, h, sid, self.algoCipher,
+                               self.iv, self.algoHash, self.rounds)
+        self.password = cleartxt[:self.dataLen]
+        self.hmac = cleartxt[self.dataLen:self.dataLen+16]
+
         ##TODO: Compute & Verify HMAC
-        self.isEncrypted = False
-        return True
 
     def decryptWithPassword(self, password):
         m = hashlib.sha1()
         m.update(password.encode("UTF-16LE"))
         return self.decryptWithHash(m.digest())
 
-    def getHash(self):
-        if self.isEncrypted == True:
-            return None
-        else:
-            return self._password
+    def __repr__(self):
+        s = ["""CredHist entry
+        revision: %(revision)x
+        hash: %(algoHash)r
+        rounds: %(rounds)i
+        cipher: %(algoCipher)r
+        dataLen: %(dataLen)i
+        hmacLen: %(hmacLen)i
+        userSID: %(userSID)s""" % self.__dict__]
+        s.append("\tiv: %s" % self.iv.encode("hex"))
+        s.append("\tguid: %s" % self.guid.encode("hex"))
+        if self.password is not None:
+            s.append("\tpassword: %r %s" % (self.password, self.password.encode(hex)))
+        if self.hmac is not None:
+            s.append("\hmac: %r %s" % (self.hmac, self.hmac.encode(hex)))
+        return "\n".join(s)
 
-class CredHistPool:
-    def __init__(self, raw):
-        self._dico = dict()
-        self._guid = dict()
-        self._pool = []
-        self._raw = raw
 
-    def parse(self):
-        total = len(self._raw)
-        size = struct.unpack("<L", self._raw[-4:])
-        while size[0] != 0:
-            if size[0] > total:
-                return False
-            total -= size[0]
-            self.addEntry(self._raw[total:])
-            size = struct.unpack_from("<L", self._raw[total - struct.calcsize("<L"):])
-        if total > 0:
-            footer = struct.unpack_from("<L16BL", self._raw)
-            self._currpw = ''.join(map(chr, footer[1:-1]))
-            self._footMagic = footer[0]
-        return True
+class CredHistPool(DataStruct):
+    def __init__(self, raw=None):
+        self.dico = dict()
+        self.guid = dict()
+        self.pool = []
+        DataStruct.__init__(self, raw)
+
+    def parse(self, data):
+        while True:
+            l = data.pop("L")
+            if l == 0:
+                break
+            self.addEntry(data.pop_string(l-4))
+        
+        self.footmagic = data.eat("L")
+        self.currpw = data.eat("16s")
+
 
     def addEntry(self, blob):
         x = CredhistEntry(blob)
-        try:
-            x.parse()
-        except Exception:
-            return False
-        else:
-            self._guid[x.getGUID()] = x
-            self._guid[x.getGUID().encode('hex')] = x
-            self._pool.append(x)
-            return True
+        self.guid[x.guid] = x
+        self.guid[x.guid.encode('hex')] = x
+        self.pool.append(x)
 
     def lookupGUID(self, guid):
-        if guid == self._currpw:
-            return self._curhash
-        if guid in self._guid:
-            return self._guid[guid].getHash()
-        else:
-            return None
+        if guid == self.currpw:
+            return self.curhash
+        if guid in self.guid:
+            return self.guid[guid].hash
+        return None
 
     def lookupHash(self, h):
-        if h in self._dico:
-            return self._dico[h]
-        else:
-            return None
+        return self.dico.get(h)
 
     def addPassword(self, pwd):
         m = hashlib.sha1()
         m.update(pwd.encode("UTF-16LE"))
-        self._dico[m.digest()] = pwd
-        self._dico[m.hexdigest()] = pwd
-        self._curhash = m.digest()
+        self.dico[m.digest()] = pwd
+        self.dico[m.hexdigest()] = pwd
+        self.curhash = m.digest()
 
     def addWordlist(self, filename):
-        f = open(filename, "r")
-        for w in f:
+        for w in open(filename, "r"):
             self.addPassword(w.rstrip())
  
     def decryptWithHash(self, h):
         curhash = h
-        for entry in self._pool:
+        for entry in self.pool:
             try:
                 entry.decryptWithHash(curhash)
                 curhash = entry.getHash()
@@ -287,17 +166,14 @@ class CredHistPool:
     def decryptWithPassword(self, pwd):
         m = hashlib.sha1()
         m.update(pwd.encode("UTF-16LE"))
-        self._dico[m.digest()] = pwd
-        self._dico[m.hexdigest()] = pwd
+        self.dico[m.digest()] = pwd
+        self.dico[m.hexdigest()] = pwd
         return self.decryptWithHash(m.digest())
 
     def __repr__(self):
-        return """
-CredHistPool:
-%s,
-pool = %r,
-dico = %r
-""" % (self._currpw.encode('hex'), self._pool, self._dico)
+        return """CredHistPool:  %s
+        pool = %r
+        dico = %r""" % (self.currpw.encode('hex'), self.pool, self.dico)
     
 
 
