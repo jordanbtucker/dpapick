@@ -37,12 +37,12 @@ class DPAPIBlob(DataStruct):
             nb -= 1
             self.providers.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
 
-        self.guid = []
+        self.guids = []
         nb = data.eat("L")
         while nb > 0:
             p = data.eat("L2H8B")
             nb -= 1
-            self.guid.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
+            self.guids.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
 
         self.flags = data.eat("L")
         self.description = data.eat_length_and_string("L").decode("UTF-16LE")
@@ -86,28 +86,26 @@ class DPAPIBlob(DataStruct):
         keys = CryptDeriveKey(final, self.hashAlgo.name)
 
         ## Decrypt
-        cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self._cipherAlgo.keyLength()], 
+        cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength], 
                             "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
         cipher.set_padding(0)
         self.clearText = cipher.update(self.cipherText) + cipher.final()
 
         ##TODO: check against provided HMAC
-        self.decrypted = True
-
     def __repr__(self):
-        s = ["DPAPI BLOB %r" % self.guid]
+        s = ["DPAPI BLOB"]
         s.append("""        providers: %(providers)r
-        mkey: %(keysGUID)r
-        flags: %(self.flags)#x
+        mkey: %(guids)r
+        flags: %(flags)#x
         descr: %(description)s
-        cipherAlgo: %(self.cipherAlgo)r
+        cipherAlgo: %(cipherAlgo)r
         hashAlgo: %(hashAlgo)r""" % self.__dict__)
         s.append("\tdata: %s" % self.data.encode('hex'))
-        s.append("\tsalt: %s" % self._salt.encode('hex'))
-        s.append("\tcipher: %s" % self._cipherText.encode('hex'))
-        s.append("\tcrc: %s" % self._crc.encode('hex'))
+        s.append("\tsalt: %s" % self.salt.encode('hex'))
+        s.append("\tcipher: %s" % self.cipherText.encode('hex'))
+        s.append("\tcrc: %s" % self.crc.encode('hex'))
         if self.clearText is not None:
-            s.append("\tcleartext: %s" % self.clearText)
+            s.append("\tcleartext: %r" % self.clearText)
         return "\n".join(s)
 
 # vim:ts=4:expandtab:sw=4

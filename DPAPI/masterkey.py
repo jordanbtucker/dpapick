@@ -29,61 +29,56 @@ from eater import Eater, DataStruct
 
 class MasterKey(DataStruct):
     def __init__(self, raw=None):
-        self.keyValue = None
+        self.key = None
         self.hmacSalt= None
-        self.hmacValue = None
+        self.hmac = None
         self.hmacComputed = None
-        self.decrypted = False
         DataStruct.__init__(self, raw)
         
     def parse(self, data):
         self.version = data.eat("L")
-        self.salt = data.eat("16s")
+        self.iv = data.eat("16s")
         self.rounds = data.eat("L")
-        self.macAlgo = crypto.CryptoAlgo(data.eat("L"))
+        self.hashAlgo = crypto.CryptoAlgo(data.eat("L"))
         self.cipherAlgo = crypto.CryptoAlgo(data.eat("L"))
-        self.encrypted = data.remain()
+        self.ciphertext = data.remain()
 
-    def decryptWithHash(self, userSID, h):
+    def decryptWithHash(self, userSID, pwdhash):
         ## Compute encryption key
-        userSID = userSID.upper()+"\0"
-        userSID = userSID.encode("UTF-16LE")
-
-        cleartxt = crypto.dataDecrypt(self.encrypted, h, userSID, self.cipherAlgo, 
-                                      self.salt, self.macAlgo, self.rounds)
-
-        self.keyValue = cleartxt[-64:]
+        utf_userSID = (userSID+"\0").encode("UTF-16LE")
+        cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.ciphertext, 
+                                      pwdhash, self.iv, utf_userSID, self.rounds)
+        self.key = cleartxt[-64:]
         self.hmacSalt = cleartxt[:16]
-        self.hmacValue = cleartxt[16:16+self.macAlgo.digestLength]
-        self.hmacComputed = crypto.DpapiHmac(h, userSID, self.macAlgo,
-                                             self.hmacSalt, self.keyValue)
-        self.decrypted = self.hmacValue == self.hmacComputed
+        self.hmac = cleartxt[16:16+self.hashAlgo.digestLength]
+        self.hmacComputed = crypto.DPAPIHmac(self.hashAlgo, pwdhash, utf_userSID, 
+                                             self.hmacSalt, self.key)
+        self.decrypted = self.hmac == self.hmacComputed
 
     def __repr__(self):
-        s = ["  + Masterkey block"]
-        s.append("        version\t= %i" % self.version)
-        s.append("        salt\t= %s" % self.salt.encode("hex"))
-        s.append("        rounds\t= %i" % self.rounds)
-        s.append("        macalgo\t= %s" % repr(self.macAlgo))
-        s.append("        cipheralgo\t= %s" % repr(self.cipherAlgo))
-        if self.decrypted:
-            s.append("        keyValue\t= %s" % self.keyValue.encode("hex"))
-            s.append("        hmacSalt\t= %s" % self.hmacSalt.encode("hex"))
-            s.append("        hmacValue\t= %s" % self.hmacValue.encode("hex"))
-            s.append("        hmacComputed\t= %s" % self.hmacComputed.encode("hex"))
+        s = ["Masterkey block"]
+        s.append("        cipher algo  = %s" % repr(self.cipherAlgo))
+        s.append("        hash algo    = %s" % repr(self.hashAlgo))
+        s.append("        rounds       = %i" % self.rounds)
+        s.append("        IV           = %s" % self.iv.encode("hex"))
+        if self.key is not None:
+            s.append("        key          = %s" % self.key.encode("hex"))
+            s.append("        hmacSalt     = %s" % self.hmacSalt.encode("hex"))
+            s.append("        hmac         = %s" % self.hmac.encode("hex"))
+            s.append("        hmacComputed = %s" % self.hmacComputed.encode("hex"))
         else:
-            s.append("        encrypted= %s" % self.encrypted.encode("hex"))
+            s.append("        ciphertext   = %s" % self.ciphertext.encode("hex"))
         return "\n".join(s)
 
 
 class CredHist(DataStruct):
     def parse(self, data):
         self.magic = data.eat("L")
-        self.guid = data.remain()
+        self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
     def __repr__(self):
-        s = ["  + CredHist block"]
+        s = ["CredHist block"]
         s.append("        magic\t= %(magic)d %(magic)#x" % self.__dict__)
-        s.append("        guid\t= %s" % self.guid.encode("hex"))
+        s.append("        guid\t= %s" % self.guid)
         return "\n".join(s)
 
 class DomainKey(DataStruct):
@@ -95,7 +90,7 @@ class DomainKey(DataStruct):
         self.firstKey = data.eat("%us" % self.firstKeyLen)
         self.secondKey = data.eat("%us" % self.secondKeyLen)
     def __repr__(self):
-        s = ["  + DomainKey block"]
+        s = ["DomainKey block"]
         s.append("        version\t= %x" % self.version)
         s.append("        salt\t= %x" % self.salt.encode("hex"))
         s.append("        firstKey\t= %x" % self.firstKey.encode("hex"))
@@ -114,7 +109,7 @@ class MasterKeyFile(DataStruct):
     def parse(self, data):
         self.version = data.eat("L")
         data.eat("2L")
-        self.keyGUID = data.eat("72s").decode("UTF-16LE")
+        self.guid = data.eat("72s").decode("UTF-16LE")
         data.eat("2L")
         self.flags = data.eat("L")
         self.masterkeyLen = data.eat("Q")
@@ -138,62 +133,59 @@ class MasterKeyFile(DataStruct):
     def decryptWithPassword(self, userSID, pwd):
         return self.decryptWithHash(userSID, hashlib.sha1(pwd.encode("UTF-16LE")).digest())
 
-    def decryptWithHash(self, userSID, h):
-        self.masterkey.decryptWithHash(userSID, h)
-        self.backupkey.decryptWithHash(userSID, h)
+    def decryptWithHash(self, userSID, pwdhash):
+        self.masterkey.decryptWithHash(userSID, pwdhash)
+        self.backupkey.decryptWithHash(userSID, pwdhash)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
     
     def get_key(self):
         if self.masterkey.decrypted:
-            return self.masterkey.keyValue
+            return self.masterkey.key
         elif self.backupkey.decrypted:
-            return self.backupkey.keyValue
+            return self.backupkey.key
+        return self.masterkey.key
         
 
     def __repr__(self):
-        s = ["\n#### MasterKeyFile %s ####" % self.keyGUID]
+        s = ["\n#### MasterKeyFile %s ####" % self.guid]
         s.append("""        dwVersion: %(version)#x
-        dwFlags: %(flags)#x
-        cbMasterKey: %(masterkeyLen)d (%(masterkeyLen)#x)
-        cbBackupKey: %(backupkeyLen)d (%(backupkeyLen)#x)
-        cbCredHist: %(credhistLen)d (%(credhistLen)#x)
-        cbDomainKey: %(domainkeyLen)d (%(domainkeyLen)#x)""" % self.__dict__)
+        Flags     = %(flags)#x
+        MasterKey = %(masterkeyLen)d
+        BackupKey = %(backupkeyLen)d
+        CredHist  = %(credhistLen)d
+        DomainKey = %(domainkeyLen)d""" % self.__dict__)
         if self.masterkey:
-            s.append(repr(self.masterkey))
+            s.append("    + Master Key: %s" % repr(self.masterkey))
         if self.backupkey:
-            s.append(repr(self.backupkey))
+            s.append("    + Backup Key: %s" % repr(self.backupkey))
         if self.credhist:
-            s.append(repr(self.credhist))
+            s.append("    + %s" % repr(self.credhist))
         if self.domainkey:
-            s.append(repr(self.domainkey))
+            s.append("    + %s" % repr(self.domainkey))
         return "\n".join(s)
 
 
 class MasterKeyPool:
     def __init__(self):
-        self.users = defaultdict(lambda: {})
         self.keys = defaultdict(lambda: [])
 
-    def addMasterKey(self, raw, userSID="S-1-5-18"):
-        userSID = userSID.upper()
-        mkey = MasterKeyFile(raw)
-        self.users[userSID][mkey.keyGUID] = mkey
-        self.keys[mkey.keyGUID].append(mkey)
+    def addMasterKey(self, mkey):
+        mkf = MasterKeyFile(mkey)
+        self.keys[mkf.guid].append(mkf)
 
-    def getMasterKey(self, keyGUID, userSID="S-1-5-18"):
-        userSID = userSID.upper()
-        if keyGUID in self.keys:
-            if len(self.keys[keyGUID]) == 1:
-                return self.keys[keyGUID][0]
-            if userSID in self.users and keyGUID in self.users[userSID]:
-                return self.users[userSID][keyGUID]
-        return None
+    def getMasterKeys(self, guid):
+        return self.keys.get(guid,[])
+
+    def try_credential(self, userSID, password):
+        n = 0
+        for mk in self.keys.values():
+            if not mk.decrypted:
+                mk.decryptWithPassword(userSID, password)
+                if mk.decrypted:
+                    n += 1
+        return n
 
     def __repr__(self):
-        return """
-        MasterKeyPool:
-        dict = %r
-        keys = %r
-        """ % (self.users.items(), self.keys.items())
+        return "MasterKeyPool:\n%r" % self.keys.items()
 
 # vim:ts=4:expandtab:sw=4

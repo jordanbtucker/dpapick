@@ -14,41 +14,57 @@ if __name__ == "__main__":
     parser.add_option("--credhist", metavar="FILE", dest="credhist")
     parser.add_option("--wordlist", metavar="FILE", dest="wordlist")
     parser.add_option("--password", metavar="PASSWORD", dest="password")
+
     (options, args) = parser.parse_args()
 
-
-    chp = credhist.CredHistPool(open(options.credhist).read())
-
-    if options.wordlist is not None:
-        chp.addWordlist(options.wordlist)
-
-    chp.decryptWithPassword(options.password)
+    chf = credhist.CredHistFile(open(options.credhist).read())
+    chf.decryptWithPassword(options.password)
 
     mkp = masterkey.MasterKeyPool()
     for k in os.listdir(options.masterkeydir):
         if k == "Preferred":
             continue
 	mkdata = open(os.path.join(options.masterkeydir, k)).read()
-	mkp.addMasterKey(mkdata, options.sid)
+	mkp.addMasterKey(mkdata)
 
     for b in args:
-	blobdata = open(b).read()
-	blob = blob.DPAPIBlob(blobdata)
+	blob = blob.DPAPIBlob(open(b).read())
 
-	keyid = blob.guid[0]
-	mk = mkp.getMasterKey(keyid, options.sid)
-	mk.decryptWithPassword(options.sid, options.password,)
-	if not mk.decrypted:
-            credid = mk.credhist.guid
-	    cred = chp.lookupGUID(credid)
-	    mk.decryptWithHash(option.sid, cred)
-	    if not mk.decrypted:
-		print >>sys.stderr, "Error: cannot decrypt masterkey"
-		sys.exit(1)
-	blob.decrypt(mk.get_key(), option.entropy, option.strongpwd)
+        print "BLOB GUID=%r" % blob.guids
+        for key_guid in blob.guids:
+            
+            mks = mkp.getMasterKeys(key_guid)
+            if mks:
+                break
+        else:
+            print >>sys.stderr,"Master key not found for blob %s (guid=%r)" % (b,blob.guids)
+            continue
+        
+        print "Found %i keys:" % len(mks)
+        print "Attempting to unlock with password:"
+        for mk in mks:
+            mk.decryptWithPassword(options.sid,options.password)
+            if mk.decrypted:
+                break
+        else:
+            for mk in mks:
+                credent = chf.entries.get(mk.credhist.guid)
+                if credent is not None:
+                    print "--- cred entry matching:",mk.credhist.guid
+                    print repr(credent)
+                    if credent.pwdhash is None:
+                        print "Alas, cred entry was not decrypted"
+                    else:
+                        break
+            else:
+                print >>sys.stderr, "No credentials found to decrypt masterkeys"
+                continue
 
-	print blob.clearText
+            print "Attempt to decrypt masterkey:"
+            mk.decryptWithHash(str(credent.userSID),credent.pwdhash)
 
-	print "BLOB=%r" % (blob)
+        print repr(mk)
 
-
+        print "Attempt to decrypt blob:"
+        blob.decrypt(mk.get_key(), options.entropy, options.strongpwd)
+        print repr(blob)
