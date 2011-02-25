@@ -58,34 +58,9 @@ class DPAPIBlob(DataStruct):
 
 
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
-        ## First compute the weird HMAC...
-        if len(masterkey) > 63:
-            dg = hashlib.new(self.hashAlgo.name)
-            dg.update(masterkey)
-            masterkey = dg.digest()
-
-        masterkey += "\0"*64
-        ipad = "".join(chr(ord(masterkey[i])^0x36) for i in range(64))
-        opad = "".join(chr(ord(masterkey[i])^0x5c) for i in range(64))
-
-        digest = hashlib.new(self.hashAlgo.name)
-        digest.update(ipad)
-        digest.update(self.data)
-        tmp = digest.digest()
-
-        digest = hashlib.new(self.hashAlgo.name)
-        digest.update(opad)
-        digest.update(tmp)
-        if entropy is not None:
-            digest.update(entropy)
-        if strongPassword is not None:
-            digest.update(strongPassword)
-        final = digest.digest()
-
-        ## Derive keys from it
-        keys = CryptDeriveKey(final, self.hashAlgo.name)
-
-        ## Decrypt
+        sessionkey = CryptSessionKey(masterkey, self.data, self.hashAlgo.name,
+                                     entropy=entropy, strongPassword=strongPassword)
+        keys = CryptDeriveKey(sessionkey, self.hashAlgo.name)
         cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength], 
                             "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
         cipher.set_padding(0)

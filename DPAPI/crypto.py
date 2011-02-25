@@ -91,6 +91,31 @@ def bitcount_B(x):
     x = ((x&0xf0)>>4) + (x&0x0f)
     return x
 
+
+def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPassword=""):
+    if len(masterkey) > 63:
+        dg = hashlib.new(hashAlgoName)
+        dg.update(masterkey)
+        masterkey = dg.digest()
+
+    masterkey += "\0"*64
+    ipad = "".join(chr(ord(masterkey[i])^0x36) for i in range(64))
+    opad = "".join(chr(ord(masterkey[i])^0x5c) for i in range(64))
+
+    digest = hashlib.new(hashAlgoName)
+    digest.update(ipad)
+    digest.update(nonce)
+    tmp = digest.digest()
+
+    digest = hashlib.new(hashAlgoName)
+    digest.update(opad)
+    digest.update(tmp)
+    if entropy is not None:
+        digest.update(entropy)
+    if strongPassword is not None:
+        digest.update(strongPassword)
+    return digest.digest()
+
 def CryptDeriveKey(h, digest='sha1'):
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
