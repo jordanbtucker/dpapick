@@ -127,7 +127,7 @@ class MasterKeyFile(DataStruct):
             self.credhist = CredHist()
             self.credhist.parse(data.eat_sub(self.credhistLen))
         if self.domainkeyLen > 0:
-            self.domainkey = Domainkey()
+            self.domainkey = DomainKey()
             self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
     def decryptWithPassword(self, userSID, pwd):
