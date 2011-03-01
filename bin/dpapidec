@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from DPAPI import *
-import sys, os
+import sys, os, re
 from optparse import OptionParser
 
 
@@ -22,10 +22,9 @@ if __name__ == "__main__":
 
     mkp = masterkey.MasterKeyPool()
     for k in os.listdir(options.masterkeydir):
-        if k == "Preferred":
-            continue
-	mkdata = open(os.path.join(options.masterkeydir, k)).read()
-	mkp.addMasterKey(mkdata)
+        if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
+	    mkdata = open(os.path.join(options.masterkeydir, k)).read()
+	    mkp.addMasterKey(mkdata)
 
     for b in args:
 	blob = blob.DPAPIBlob(open(b).read())
