@@ -84,17 +84,17 @@ class CredHist(DataStruct):
 class DomainKey(DataStruct):
     def parse(self, data):
         self.version = data.eat("L")
-        self.firstKeyLen = data.eat("L")
-        self.secondKeyLen = data.eat("L")
-        self.salt = data.eat("16s")
-        self.firstKey = data.eat("%us" % self.firstKeyLen)
-        self.secondKey = data.eat("%us" % self.secondKeyLen)
+        self.secretLen = data.eat("L")
+        self.accesscheckLen = data.eat("L")
+        self.guidKey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B") #data.eat("16s")
+        self.encryptedSecret = data.eat("%us" % self.secretLen)
+        self.accessCheck = data.eat("%us" % self.accesscheckLen)
     def __repr__(self):
         s = ["DomainKey block"]
         s.append("        version\t= %x" % self.version)
-        s.append("        salt\t= %x" % self.salt.encode("hex"))
-        s.append("        firstKey\t= %x" % self.firstKey.encode("hex"))
-        s.append("        secondKey\t= %x" % self.secondKey.encode("hex"))
+        s.append("        guid\t= %s" % self.guidKey)
+        s.append("        secret\t= %s" % self.encryptedSecret.encode("hex"))
+        s.append("        accessCheck\t= %s" % self.accessCheck.encode("hex"))
         return "\n".join(s)
 
 class MasterKeyFile(DataStruct):
