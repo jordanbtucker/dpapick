@@ -68,14 +68,10 @@ CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=256, blockLe
 CryptoAlgo.add_algo(0x6601, name="DES",     keyLength=64,  IVLength=64,  blockLength=64,  m2="des_cbc")
 
 CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
-CryptoAlgo.add_algo(0x8005, name="MAC",  keyLength=0, IVLength=0, blockLength=0)
-CryptoAlgo.add_algo(0x8001, name="md2",  keyLength=0, IVLength=0, blockLength=0)
-CryptoAlgo.add_algo(0x8002, name="md4",  keyLength=0, IVLength=0, blockLength=0)
-CryptoAlgo.add_algo(0x8003, name="md5",  keyLength=0, IVLength=0, blockLength=0)
 
-CryptoAlgo.add_algo(0x6602, name="RC2", keyLength=0, IVLength=0, blockLength=0)
-CryptoAlgo.add_algo(0x6801, name="RC4", keyLength=0, IVLength=0, blockLength=0)
-CryptoAlgo.add_algo(0x660d, name="RC5", keyLength=0, IVLength=0, blockLength=0)
+CryptoAlgo.add_algo(0x8001, name="md2",  digestLength=128, blockLength=128)
+CryptoAlgo.add_algo(0x8002, name="md4",  digestLength=128, blockLength=512)
+CryptoAlgo.add_algo(0x8003, name="md5",  digestLength=128, blockLength=512)
 
 CryptoAlgo.add_algo(0x8004, name="sha1",   digestLength=160, blockLength=512)
 CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
