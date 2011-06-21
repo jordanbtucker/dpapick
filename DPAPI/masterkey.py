@@ -148,7 +148,7 @@ class MasterKeyFile(DataStruct):
 
     def __repr__(self):
         s = ["\n#### MasterKeyFile %s ####" % self.guid]
-        s.append("""        dwVersion: %(version)#x
+        s.append("""        version   = %(version)#d
         Flags     = %(flags)#x
         MasterKey = %(masterkeyLen)d
         BackupKey = %(backupkeyLen)d
