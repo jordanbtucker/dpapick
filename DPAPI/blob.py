@@ -30,12 +30,8 @@ class DPAPIBlob(DataStruct):
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
-        self.providers = []
-        nb = data.eat("L")
-        while nb > 0:
-            p = data.eat("L2H8B")
-            nb -= 1
-            self.providers.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
+        self.version = data.eat("L")
+        self.provider = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
         self.guids = []
         nb = data.eat("L")
@@ -60,16 +56,17 @@ class DPAPIBlob(DataStruct):
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
         sessionkey = CryptSessionKey(masterkey, self.data, self.hashAlgo.name,
                                      entropy=entropy, strongPassword=strongPassword)
-        keys = CryptDeriveKey(sessionkey, self.hashAlgo.name)
+        keys = CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
         cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength], 
                             "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
         cipher.set_padding(0)
         self.clearText = cipher.update(self.cipherText) + cipher.final()
-
         ##TODO: check against provided HMAC
+
     def __repr__(self):
         s = ["DPAPI BLOB"]
-        s.append("""        providers: %(providers)r
+        s.append("""        version: %(version)d
+        provider: %(provider)s
         mkey: %(guids)r
         flags: %(flags)#x
         descr: %(description)s
