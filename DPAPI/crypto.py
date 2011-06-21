@@ -112,21 +112,31 @@ def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPas
         digest.update(strongPassword)
     return digest.digest()
 
-def CryptDeriveKey(h, digest='sha1'):
+def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
         h = _dg(h).digest()
+
+    if len(h) >= cipherAlgo.keyLength:
+        return h
+
     h += "\0"*64
     
     ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
     opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
-    
-    tmp = array.array("B")
-    tmp.fromstring( _dg(ipad).digest() + _dg(opad).digest() )
-    for i,v in enumerate(tmp):
-        tmp[i] ^= (bitcount_B(v)^1)&1
-    return tmp.tostring()
-    
+
+    k = _dg(ipad).digest() + _dg(opad).digest()
+
+    if cipherAlgo.name in [ "DES", "DES2", "DES3" ]:
+        ## des_set_odd_parity
+        tmp = array.array("B")
+        tmp.fromstring(k)
+        for i,v in enumerate(tmp):
+            tmp[i] ^= (bitcount_B(v)^1)&1
+        k = tmp.tostring()
+
+    return k
+
 def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
     _dg = getattr(hashlib, digest)
     buff = ""
@@ -147,7 +157,7 @@ def dataDecrypt(cipherAlgo, hashAlgo, raw, pwdhash, iv, hmacSalt, rounds):
     encKey = hmac.new(pwdhash, hmacSalt, dg).digest()
     derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
     key,iv = derived[:cipherAlgo.keyLength],derived[cipherAlgo.keyLength:]
-    cipher = EVP.Cipher(cipherAlgo.m2name, key, iv,m2.decrypt, 0)
+    cipher = EVP.Cipher(cipherAlgo.m2name, key, iv, m2.decrypt, 0)
     cipher.set_padding(0)
     cleartxt = cipher.update(raw) + cipher.final()
     return cleartxt
