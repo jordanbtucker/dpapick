@@ -67,3 +67,5 @@ if __name__ == "__main__":
         print "Attempt to decrypt blob:"
         blob.decrypt(mk.get_key(), options.entropy, options.strongpwd)
         print repr(blob)
+
+# vim:ts=4:expandtab:sw=4
