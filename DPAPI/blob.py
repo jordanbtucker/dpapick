@@ -62,22 +62,23 @@ class DPAPIBlob(DataStruct):
         cipher.set_padding(0)
         self.clearText = cipher.update(self.cipherText) + cipher.final()
         ##TODO: check against provided HMAC
+        
 
     def __repr__(self):
         s = ["DPAPI BLOB"]
-        s.append("""        version: %(version)d
-        provider: %(provider)s
-        mkey: %(guids)r
-        flags: %(flags)#x
-        descr: %(description)s
-        cipherAlgo: %(cipherAlgo)r
-        hashAlgo: %(hashAlgo)r""" % self.__dict__)
-        s.append("\tdata: %s" % self.data.encode('hex'))
-        s.append("\tsalt: %s" % self.salt.encode('hex'))
-        s.append("\tcipher: %s" % self.cipherText.encode('hex'))
-        s.append("\tcrc: %s" % self.crc.encode('hex'))
+        s.append("""        version     = %(version)d
+        provider    = %(provider)s
+        mkey        = %(guids)r
+        flags       = %(flags)#x
+        descr       = %(description)s
+        cipherAlgo  = %(cipherAlgo)r
+        hashAlgo    = %(hashAlgo)r""" % self.__dict__)
+        s.append("\tdata        = %s" % self.data.encode('hex'))
+        s.append("\tsalt        = %s" % self.salt.encode('hex'))
+        s.append("\tcipher      = %s" % self.cipherText.encode('hex'))
+        s.append("\tcrc         = %s" % self.crc.encode('hex'))
         if self.clearText is not None:
-            s.append("\tcleartext: %r" % self.clearText)
+            s.append("\tcleartext   = %r" % self.clearText)
         return "\n".join(s)
 
 # vim:ts=4:expandtab:sw=4
