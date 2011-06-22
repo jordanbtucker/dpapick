@@ -1,0 +1,31 @@
+Legend
+------
+[-] = Not started
+[*] = Work in progress
+
+
+TODO-List
+---------
+[-] Add hivex stuff and registry API
+[-] Add LsaSecrets retreival and decryption stuff (cf. LsaSecrets.txt)
+[-] Decrypt blob for SYSTEM (eg. wireless keys)
+[-] Handle Win7 decryption process
+[-] Decrypt LSA Protected Storage (looks like a blob with special flags)
+[*] Retreive SHA-1 UTF-16LE in memory dump or live
+[*] Retreive DPAPI_SYSTEM secret in memory dump or live
+[*] Retreive SHA-1 UTF-16LE in hyberfil.sys
+[*] Retreive DPAPI_SYSTEM secret in hyberfil.sys
+[-] Add WiFi keys decryption probe
+[-] Add MSN Messenger decryption probe
+[-] Add GTalk decryption probe
+[-] Add X.509 certificate and EFS decryption probe
+[-] Add ciphering capabilities
+[-] Improve ciphering capabilities by correctly handling registry keys
+[-] Check HMAC after decryption of CREDHIST
+[-] Rewrite parsers to correctly handle revision of serialized data
+[-] Add support for Windows Mobile
+[-] Add Skype decryption probe
+[-] Add BLOB detection heuristic
+[-] Work on Domain Controller's databases
+[-] Correctly handle DomainKey bloc in Masterkeys
+[-] Analyze BK-* keys and guess what's their purpose
