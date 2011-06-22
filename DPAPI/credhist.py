@@ -41,9 +41,9 @@ class RPC_SID(DataStruct):
 
     def __repr__(self):
         return """RPC_SID(%s):
-        revision: %d
-        identifier-authority: %r
-        subAuthorities: %r""" % (self, self.version, self.idAuth, self.subAuth)
+        revision             = %d
+        identifier-authority = %r
+        subAuthorities       = %r""" % (self, self.version, self.idAuth, self.subAuth)
 
 class CredhistEntry(DataStruct):
     """Represents an entry in the Credhist file"""
@@ -86,19 +86,19 @@ class CredhistEntry(DataStruct):
 
     def __repr__(self):
         s = ["""CredHist entry
-        revision: %(revision)x
-        hash: %(hashAlgo)r
-        rounds: %(rounds)i
-        cipher: %(cipherAlgo)r
-        dataLen: %(dataLen)i
-        hmacLen: %(hmacLen)i
-        userSID: %(userSID)s""" % self.__dict__]
-        s.append("\tguid: %s" % self.guid)
-        s.append("\tiv: %s" % self.iv.encode("hex"))
+        revision = %(revision)x
+        hash     = %(hashAlgo)r
+        rounds   = %(rounds)i
+        cipher   = %(cipherAlgo)r
+        dataLen  = %(dataLen)i
+        hmacLen  = %(hmacLen)i
+        userSID  = %(userSID)s""" % self.__dict__]
+        s.append("\tguid     = %s" % self.guid)
+        s.append("\tiv       = %s" % self.iv.encode("hex"))
         if self.pwdhash is not None:
-            s.append("\tpwdhash: %s" % self.pwdhash.encode("hex"))
+            s.append("\tpwdhash  = %s" % self.pwdhash.encode("hex"))
         if self.hmac is not None:
-            s.append("\thmac        : %s" % self.hmac.encode("hex"))
+            s.append("\thmac     = %s" % self.hmac.encode("hex"))
         return "\n".join(s)
 
 
