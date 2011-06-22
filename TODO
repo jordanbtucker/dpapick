@@ -6,6 +6,7 @@ Legend
 
 TODO-List
 ---------
+[-] Licence
 [-] Add hivex stuff and registry API
 [-] Add LsaSecrets retreival and decryption stuff (cf. LsaSecrets.txt)
 [-] Decrypt blob for SYSTEM (eg. wireless keys)
