@@ -77,7 +77,7 @@ class CredHist(DataStruct):
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
     def __repr__(self):
         s = ["CredHist block"]
-        s.append("        magic\t= %(magic)d %(magic)#x" % self.__dict__)
+        s.append("        magic\t= %(magic)d" % self.__dict__)
         s.append("        guid\t= %s" % self.guid)
         return "\n".join(s)
 
