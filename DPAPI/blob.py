@@ -27,6 +27,8 @@ from eater import Eater, DataStruct
 class DPAPIBlob(DataStruct):
     def __init__(self, raw=None):
         self.clearText = None
+        self.decrypted = False
+        self.crcComputed = None
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
