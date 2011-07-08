@@ -40,7 +40,8 @@ class DPAPIProbe(DataStruct):
         pass
 
     def postprocess(self, **k):
-        pass
+        if self.dpapiblob.decrypted:
+            self.cleartext = self.dpapiblob.cleartext
 
     def try_decrypt_with_hash(self, h, mkeypool, sid, **k):
         self.preprocess(**k)
