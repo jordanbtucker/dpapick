@@ -28,7 +28,7 @@ from eater import Eater, DataStruct
 
 class DPAPIBlob(DataStruct):
     def __init__(self, raw=None):
-        self.clearText = None
+        self.cleartext = None
         self.decrypted = False
         self.crcComputed = None
         DataStruct.__init__(self, raw)
@@ -72,7 +72,7 @@ class DPAPIBlob(DataStruct):
                             "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
         cipher.set_padding(1)
         try:
-            self.clearText = cipher.update(self.cipherText) + cipher.final()
+            self.cleartext = cipher.update(self.cipherText) + cipher.final()
         except:
             self.decrypted = False
             return
@@ -98,8 +98,8 @@ class DPAPIBlob(DataStruct):
         s.append("\tcrc         = %s" % self.crc.encode('hex'))
         if self.crcComputed is not None:
             s.append("\tcrcComputed = %s" % self.crcComputed.encode('hex'))
-        if self.clearText is not None:
-            s.append("\tcleartext   = %r" % self.clearText)
+        if self.cleartext is not None:
+            s.append("\tcleartext   = %r" % self.cleartext)
         return "\n".join(s)
 
 # vim:ts=4:expandtab:sw=4
