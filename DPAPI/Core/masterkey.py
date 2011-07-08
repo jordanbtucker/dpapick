@@ -24,6 +24,7 @@
 import string
 import crypto
 import hashlib
+import os, re
 from collections import defaultdict
 from eater import Eater, DataStruct
 
@@ -177,6 +178,16 @@ class MasterKeyPool:
 
     def getMasterKeys(self, guid):
         return self.keys.get(guid,[])
+
+    def loadDirectory(self, directory):
+        for k in os.listdir(directory):
+            if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
+                try:
+                    f = open(os.path.join(directory, k))
+                    self.addMasterKey(f.read())
+                    f.close()
+                except:
+                    pass
 
     def try_credential(self, userSID, password):
         n = 0
