@@ -5,17 +5,19 @@
 ## This file is part of DPAPIck                                            ##
 ## Windows DPAPI decryption & forensic toolkit                             ##
 ##                                                                         ##
-## Copyright (C) Jean-Michel Picod <jmichel.p@gmail.com>                   ##
-## Copyright (C) Elie Bursztein <elie@elie.im>                             ##
 ##                                                                         ##
-## This program is free software; you can redistribute it and/or modify it ##
-## under the terms of the GNU General Public License version 2 as          ##
-## published by the Free Software Foundation.                              ##
+## Copyright (C) 2010, 2011 Cassidian SAS. All rights reserved.            ##
+## This document is the property of Cassidian SAS, it may not be copied or ##
+## circulated without prior licence                                        ##
 ##                                                                         ##
-## This program is distributed in the hope that it will be useful, but     ##
-## WITHOUT ANY WARRANTY; without even the implied warranty of              ##
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU       ##
-## General Public License for more details.                                ##
+##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##                                                                         ##
+## This program is distributed under dual cumulative licences:             ##
+##    * GPLv3 for non-commercial use of this program (see LICENCE.GPLv3)   ##
+##    * EADS licence for commercial use (see LICENCE.EADS)                 ##
+##                                                                         ##
+## If you want to make a commercial tool using this program, contact the   ##
+## author for information and a quotation                                  ##
 ##                                                                         ##
 #############################################################################
 
@@ -69,7 +71,11 @@ class DPAPIBlob(DataStruct):
         cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength], 
                             "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
         cipher.set_padding(1)
-        self.clearText = cipher.update(self.cipherText) + cipher.final()
+        try:
+            self.clearText = cipher.update(self.cipherText) + cipher.final()
+        except:
+            self.decrypted = False
+            return
 
         ## check against provided HMAC
         self.crcComputed = CryptSessionKey(masterkey, self.salt, self.hashAlgo.name,
