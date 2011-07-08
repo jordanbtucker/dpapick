@@ -22,11 +22,11 @@
 import string
 import hashlib
 import datetime
-from collections import defaultdict
 from DPAPI import *
 from DPAPI.eater import Eater,DataStruct
+from DPAPI.Probes.generic import DPAPIProbe
 
-class WirelessInfo(DataStruct):
+class WirelessInfo(DPAPIProbe):
 
     class WifiStruct(DataStruct):
         def __init__(self, raw=None):
@@ -140,19 +140,10 @@ class WirelessInfo(DataStruct):
                 self.timestamp /= 10000000
                 self.timestamp -= 11644473600
 
-    def __init__(self, raw=None):
-        self.wifiStruct = None
-        self.dpapiblob = None
-        self.entropy = None
-        DataStruct.__init__(self, raw)
-        
     def parse(self, data):
         l = data.eat("L") - 4
         self.wifiStruct = WirelessInfo.WifiStruct(data.eat("%us" % l))
         self.dpapiblob = blob.DPAPIBlob(data.remain())
-
-    def preprocess(self, **k):
-        pass
 
     def postprocess(self, **k):
         xorKey = ("56660942080398014d67086611" * 5).decode('hex')
