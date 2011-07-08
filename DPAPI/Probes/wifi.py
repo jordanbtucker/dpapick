@@ -22,9 +22,9 @@
 import string
 import hashlib
 import datetime
-from DPAPI import *
-from DPAPI.eater import Eater,DataStruct
-from DPAPI.Probes.generic import DPAPIProbe
+from DPAPI.Core.eater import Eater,DataStruct
+from DPAPI.Core import blob
+from DPAPI.probe import DPAPIProbe
 
 class WirelessInfo(DPAPIProbe):
 

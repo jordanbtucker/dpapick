@@ -19,7 +19,7 @@
 ##                                                                         ##
 #############################################################################
 
-from DPAPI import *
+from DPAPI.Core import *
 import sys, os, re
 from optparse import OptionParser
 
