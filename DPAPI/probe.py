@@ -22,6 +22,8 @@
 #############################################################################
 
 from DPAPI.Core.eater import DataStruct
+from DPAPI.Core import masterkey
+import hashlib
 
 class DPAPIProbe(DataStruct):
 
@@ -40,6 +42,25 @@ class DPAPIProbe(DataStruct):
     def postprocess(self, **k):
         pass
 
+    def try_decrypt_with_hash(self, h, mkeypool, sid, **k):
+        self.preprocess(**k)
+        for kguid in self.dpapiblob.guids:
+            mks = mkeypool.getMasterKeys(kguid)
+            for mk in mks:
+                mk.decryptWithHash(sid, h)
+                if mk.decrypted:
+                    self.dpapiblob.decrypt(mk.get_key(),
+                            self.entropy,
+                            k.get("strong", None))
+                    if self.dpapiblob.decrypted:
+                        self.postprocess(**k)
+                        return True
+        return False
+
+    def try_decrypt_with_password(self, password, mkeypool, sid, **k):
+        return self.try_decrypt_with_hash(
+                hashlib.sha1(password.encode("UTF-16LE")).digest(),
+                mkeypool, sid, **k)
 
 # vim:ts=4:expandtab:sw=4
 
