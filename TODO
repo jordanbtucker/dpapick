@@ -6,19 +6,19 @@ Legend
 
 TODO-List
 ---------
-[-] Licence
+[*] Licence
 [-] Add hivex stuff and registry API
 [-] Add LsaSecrets retreival and decryption stuff (cf. LsaSecrets.txt)
-[-] Decrypt blob for SYSTEM (eg. wireless keys)
+[*] Decrypt blob for SYSTEM (eg. wireless keys)
 [-] Handle Win7 decryption process
 [-] Decrypt LSA Protected Storage (looks like a blob with special flags)
-[*] Retreive SHA-1 UTF-16LE in memory dump or live
-[*] Retreive DPAPI_SYSTEM secret in memory dump or live
+	=> use creddump for the moment
 [*] Retreive SHA-1 UTF-16LE in hyberfil.sys
+	=> requires Moonsol Pro at this time
 [*] Retreive DPAPI_SYSTEM secret in hyberfil.sys
-[-] Add WiFi keys decryption probe
+	=> requires Moonsol Pro at this time
+[*] Add WiFi keys decryption probe
 [-] Add MSN Messenger decryption probe
-[-] Add GTalk decryption probe
 [-] Add X.509 certificate and EFS decryption probe
 [-] Add ciphering capabilities
 [-] Improve ciphering capabilities by correctly handling registry keys
