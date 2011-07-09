@@ -25,9 +25,10 @@ from distutils.core import setup
 
 setup(
     name = 'DPAPI',
-    version = '0.1',
+    version = '0.2',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
-    scripts = ['bin/dpapidec'],
+    scripts = ['bin/dpapidec', 'bin/chrome', 'bin/getcredentialsha1',
+               'googletalk'],
 
     # Metadata
     author = 'Jean-Michel PICOD',
@@ -35,5 +36,5 @@ setup(
     description = 'DPAPI decryption toolkit',
     license = 'GPLv3 + EADS licence',
     # keywords = '',
-    # url = '',
+    url = 'http://www.dpapick.com',
 )
