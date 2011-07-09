@@ -49,6 +49,14 @@ class DPAPIProbe(DataStruct):
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
                 mk.decryptWithHash(sid, h)
+                if mk.decrypted == False:
+                    ## try credhist if one is loaded
+                    if mkeypool.creds.get(sid) != None:
+                        mkeypool.creds[sid].decryptWithHash(h)
+                        for cred in mkeypool.creds[sid].entries_list:
+                            mk.decryptWithHash(sid, cred.pwdhash)
+                            if mk.decrypted:
+                                break
                 if mk.decrypted:
                     self.dpapiblob.decrypt(mk.get_key(),
                             self.entropy,
