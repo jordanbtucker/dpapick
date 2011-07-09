@@ -27,7 +27,7 @@ import hashlib
 import os, re
 from collections import defaultdict
 from eater import Eater, DataStruct
-
+from DPAPI.Core import credhist
 
 
 class MasterKey(DataStruct):
@@ -171,6 +171,8 @@ class MasterKeyFile(DataStruct):
 class MasterKeyPool:
     def __init__(self):
         self.keys = defaultdict(lambda: [])
+        self.creds = {}
+        self.system = None
 
     def addMasterKey(self, mkey):
         mkf = MasterKeyFile(mkey)
@@ -178,6 +180,17 @@ class MasterKeyPool:
 
     def getMasterKeys(self, guid):
         return self.keys.get(guid,[])
+
+    def addSystemCredential(self, blob):
+        self.system = credhist.CredSystem(blob)
+
+    def addCredhist(self, sid, cred):
+        self.creds[sid] = cred
+
+    def addCredhistFile(self, sid, credfile):
+        f = open(credfile)
+        self.addCredhist(sid, credhist.CredHistFile(f.read()))
+        f.close()
 
     def loadDirectory(self, directory):
         for k in os.listdir(directory):
@@ -199,6 +212,14 @@ class MasterKeyPool:
         return n
 
     def __repr__(self):
-        return "MasterKeyPool:\n%r" % self.keys.items()
+        s  = [ "MasterKeyPool:" ]
+        s.append("Keys:")
+        s.append(repr(self.keys.items()))
+        s.append(repr(self.system))
+        s.append("CredHist entries:")
+        for i in self.creds.keys():
+            s.append("\tSID: %s" % i)
+            s.append(repr(self.creds[i]))
+        return "\n".join(s)
 
 # vim:ts=4:expandtab:sw=4
