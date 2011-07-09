@@ -47,6 +47,24 @@ class RPC_SID(DataStruct):
         identifier-authority = %r
         subAuthorities       = %r""" % (self, self.version, self.idAuth, self.subAuth)
 
+class CredSystem(DataStruct):
+    def __init__(self, raw=None):
+        self.machine = None
+        self.user = None
+        self.revision = None
+        DataStruct.__init__(self, raw)
+
+    def parse(self, data):
+        self.revision = data.eat("L")
+        self.machine = data.eat("20s")
+        self.user = data.eat("20s")
+
+    def __repr__(self):
+        s = [ "DPAPI_SYSTEM:" ]
+        s.append("\tUser Credential   : %s" % self.user.encode('hex'))
+        s.append("\tMachine Credential: %s" % self.machine.encode('hex'))
+        return "\n".join(s)
+
 class CredhistEntry(DataStruct):
     """Represents an entry in the Credhist file"""
     def __init__(self, raw=None):
