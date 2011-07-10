@@ -84,6 +84,7 @@ class WirelessInfo(DPAPIProbe):
             if self.flags & 0x10:
                 flags.append("802.1x should be enabled")
             s.append("        flags            = %s" % ", ".join(flags))
+            s.append("        bssid            = %s" % self.bssid)
             s.append("        ssid             = %s" % self.ssid)
             s.append("        privacy          = 0x%x" % self.privacy) ##FIXME add prettyprint
             s.append("        rssi             = %i" % self.rssi)
