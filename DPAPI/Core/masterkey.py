@@ -47,14 +47,19 @@ class MasterKey(DataStruct):
         self.ciphertext = data.remain()
 
     def decryptWithHash(self, userSID, pwdhash):
+        self.decryptWithKey(crypto.derivePwdHash(pwdhash, userSID, self.hashAlgo))
+
+    def decryptWithPassword(self, userSID, pwd):
+        self.decryptWithKey(crypto.derivePassword(pwd, userSID, self.hashAlgo))
+
+    def decryptWithKey(self, pwdhash):
         ## Compute encryption key
-        utf_userSID = (userSID+"\0").encode("UTF-16LE")
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.ciphertext, 
-                                      pwdhash, self.iv, utf_userSID, self.rounds)
+                                      pwdhash, self.iv, self.rounds)
         self.key = cleartxt[-64:]
         self.hmacSalt = cleartxt[:16]
         self.hmac = cleartxt[16:16+self.hashAlgo.digestLength]
-        self.hmacComputed = crypto.DPAPIHmac(self.hashAlgo, pwdhash, utf_userSID, 
+        self.hmacComputed = crypto.DPAPIHmac(self.hashAlgo, pwdhash,
                                              self.hmacSalt, self.key)
         self.decrypted = self.hmac == self.hmacComputed
 
@@ -133,12 +138,17 @@ class MasterKeyFile(DataStruct):
             self.domainkey = DomainKey()
             self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
-    def decryptWithPassword(self, userSID, pwd):
-        return self.decryptWithHash(userSID, hashlib.sha1(pwd.encode("UTF-16LE")).digest())
+    def decryptWithHash(self, userSID, h):
+        self.masterkey.decryptWithHash(userSID, h)
+        self.backupkey.decryptWithHash(userSID, h)
+        self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
 
-    def decryptWithHash(self, userSID, pwdhash):
-        self.masterkey.decryptWithHash(userSID, pwdhash)
-        self.backupkey.decryptWithHash(userSID, pwdhash)
+    def decryptWithPassword(self, userSID, pwd):
+        self.decryptWithHash(userSID, hashlib.sha1(pwd.encode('UTF-16LE')).digest())
+
+    def decryptWithKey(self, pwdhash):
+        self.masterkey.decryptWithKey(pwdhash)
+        self.backupkey.decryptWithKey(pwdhash)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
     
     def get_key(self):

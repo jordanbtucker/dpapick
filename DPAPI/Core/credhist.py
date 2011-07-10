@@ -92,14 +92,16 @@ class CredhistEntry(DataStruct):
         self.revision2 = data.eat("L")
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
-    def decryptWithHash(self, pwdhash):
-        utf_userSID = (str(self.userSID)+"\0").encode("UTF-16LE")
+    def decryptWithKey(self, enckey):
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted, 
-                                      pwdhash, self.iv, utf_userSID, self.rounds)
+                                      enckey, self.iv, self.rounds)
         self.pwdhash = cleartxt[:self.dataLen]
         self.hmac = cleartxt[self.dataLen:self.dataLen+self.hmacLen]
-
         ##TODO: Compute & Verify HMAC
+
+    def decryptWithHash(self, pwdhash):
+        self.decryptWithKey(crypto.derivePwdHash(pwdhash, str(self.userSID),
+            self.hashAlgo))
 
     def decryptWithPassword(self, password):
         return self.decryptWithHash(hashlib.sha1(password.encode("UTF-16LE")).digest())

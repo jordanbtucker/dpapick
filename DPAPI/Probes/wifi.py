@@ -123,9 +123,9 @@ class WirelessInfo(DPAPIProbe):
             self.infrastructuremode = data.eat("L")
             self.supportedrates = data.eat("8B")
             self.keyindex = data.eat("L")
-            l = data.eat("L")
+            self.keylen = data.eat("L")
             self.key = data.eat("32s")
-            self.key = self.key[:l]
+            self.key = self.key[:self.keylen]
             self.authmode = data.eat("L")
             data.eat("2L") ## rdUserData - not used
             self.ieee8021xEnabled = data.eat("L") != 0
@@ -149,20 +149,18 @@ class WirelessInfo(DPAPIProbe):
 
     def postprocess(self, **k):
         xorKey = ("56660942080398014d67086611" * 5).decode('hex')
-        if self.decrypted:
+        if self.dpapiblob.decrypted:
             self.cleartext = "".join([ chr(ord(x) ^ ord(y)) for (x,y) in zip(self.dpapiblob.cleartext, xorKey) ])
+            self.cleartext = self.cleartext[:self.wifiStruct.keylen]
 
     def __repr__(self):
         s = ["Wirelesskey block"]
-        s.append("        BSSID      = %s" % self.bssid)
-        s.append("        SSID       = %s" % self.ssid)
+        s.append("        BSSID      = %s" % self.wifiStruct.bssid)
+        s.append("        SSID       = %s" % self.wifiStruct.ssid)
         if self.dpapiblob.decrypted:
             s.append("        hexKey     = %s" % self.cleartext.encode('hex'))
         s.append("    %r" % self.wifiStruct)
         s.append("    %r" % self.dpapiblob)
         return "\n".join(s)
-
-    def __getattr__(self, name):
-        return getattr(self.wifiStruct, name)
 
 # vim:ts=4:expandtab:sw=4
