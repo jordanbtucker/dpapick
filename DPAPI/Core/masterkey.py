@@ -32,6 +32,7 @@ from DPAPI.Core import credhist
 
 class MasterKey(DataStruct):
     def __init__(self, raw=None):
+        self.decrypted = False
         self.key = None
         self.hmacSalt= None
         self.hmac = None
@@ -53,6 +54,8 @@ class MasterKey(DataStruct):
         self.decryptWithKey(crypto.derivePassword(pwd, userSID, self.hashAlgo))
 
     def decryptWithKey(self, pwdhash):
+        if self.decrypted:
+            return
         ## Compute encryption key
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.ciphertext, 
                                       pwdhash, self.iv, self.rounds)
@@ -139,16 +142,20 @@ class MasterKeyFile(DataStruct):
             self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
     def decryptWithHash(self, userSID, h):
-        self.masterkey.decryptWithHash(userSID, h)
-        self.backupkey.decryptWithHash(userSID, h)
+        if not self.masterkey.decrypted:
+            self.masterkey.decryptWithHash(userSID, h)
+        if not self.backupkey.decrypted:
+            self.backupkey.decryptWithHash(userSID, h)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
 
     def decryptWithPassword(self, userSID, pwd):
         self.decryptWithHash(userSID, hashlib.sha1(pwd.encode('UTF-16LE')).digest())
 
     def decryptWithKey(self, pwdhash):
-        self.masterkey.decryptWithKey(pwdhash)
-        self.backupkey.decryptWithKey(pwdhash)
+        if not self.masterkey.decrypted:
+            self.masterkey.decryptWithKey(pwdhash)
+        if not self.backupkey.decrypted:
+            self.backupkey.decryptWithKey(pwdhash)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
     
     def get_key(self):
