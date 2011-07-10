@@ -9,7 +9,6 @@ TODO-List
 [*] Licence
 [-] Add hivex stuff and registry API
 [-] Add LsaSecrets retreival and decryption stuff (cf. LsaSecrets.txt)
-[*] Decrypt blob for SYSTEM (eg. wireless keys)
 [-] Handle Win7 decryption process
 [-] Decrypt LSA Protected Storage (looks like a blob with special flags)
 	=> use creddump for the moment
@@ -17,7 +16,6 @@ TODO-List
 	=> requires Moonsol Pro at this time
 [*] Retreive DPAPI_SYSTEM secret in hyberfil.sys
 	=> requires Moonsol Pro at this time
-[*] Add WiFi keys decryption probe
 [-] Add MSN Messenger decryption probe
 [-] Add X.509 certificate and EFS decryption probe
 [-] Add ciphering capabilities

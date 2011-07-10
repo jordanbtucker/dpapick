@@ -153,22 +153,30 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
         buff += init
     return buff[:keylen]
 
-def dataDecrypt(cipherAlgo, hashAlgo, raw, pwdhash, iv, hmacSalt, rounds):
+def derivePwdHash(pwdhash, userSID, hashAlgo):
     hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
     dg = getattr(hashlib, hname)
-    encKey = hmac.new(pwdhash, hmacSalt, dg).digest()
-    derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
+    encKey = hmac.new(pwdhash, (userSID+"\0").encode("UTF-16LE"), dg).digest()
+    return encKey
+
+def derivePassword(userPwd, userSID, hashAlgo):
+    return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest(),
+                         userSID, hashAlgo)
+
+def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
+    hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
+    derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength,
+            rounds, hname)
     key,iv = derived[:cipherAlgo.keyLength],derived[cipherAlgo.keyLength:]
     cipher = EVP.Cipher(cipherAlgo.m2name, key, iv, m2.decrypt, 0)
     cipher.set_padding(0)
     cleartxt = cipher.update(raw) + cipher.final()
     return cleartxt
 
-def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, hmacSalt2, value):
+def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, value):
     hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
     dg = getattr(hashlib, hname)
     encKey = hmac.new(pwdhash, hmacSalt, dg).digest()
-    encKey = hmac.new(encKey, hmacSalt2, dg).digest()
     return hmac.new(encKey, value, dg).digest()
 
 # vim:ts=4:expandtab:sw=4

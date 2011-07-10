@@ -43,6 +43,25 @@ class DPAPIProbe(DataStruct):
         if self.dpapiblob.decrypted:
             self.cleartext = self.dpapiblob.cleartext
 
+
+    def try_decrypt_system(self, mkeypool, **k):
+        self.preprocess(**k)
+        for kguid in self.dpapiblob.guids:
+            mks = mkeypool.getMasterKeys(kguid)
+            for mk in mks:
+                mk.decryptWithKey(mkeypool.system.user)
+                if mk.decrypted == False:
+                    mk.decryptWithKey(mkeypool.system.machine)
+                if mk.decrypted:
+                    self.dpapiblob.decrypt(mk.get_key(),
+                            self.entropy,
+                            k.get("strong", None))
+                    if self.dpapiblob.decrypted:
+                        self.postprocess(**k)
+                        return True
+        return False
+
+ 
     def try_decrypt_with_hash(self, h, mkeypool, sid, **k):
         self.preprocess(**k)
         for kguid in self.dpapiblob.guids:
