@@ -28,7 +28,7 @@ setup(
     version = '0.2',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
     scripts = ['bin/dpapidec', 'bin/chrome', 'bin/getcredentialsha1',
-               'googletalk'],
+               'bin/googletalk'],
 
     # Metadata
     author = 'Jean-Michel PICOD',
