@@ -43,7 +43,7 @@ class DPAPIBlob(DataStruct):
             self.guids.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
 
         self.flags = data.eat("L")
-        self.description = data.eat_length_and_string("L").decode("UTF-16LE")
+        self.description = data.eat_length_and_string("L").decode("UTF-16LE").encode("utf-8")
         self.cipherAlgo = CryptoAlgo( data.eat("L") )
         self.keyLen = data.eat("L")
         self.data = data.eat_length_and_string("L")
