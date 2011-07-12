@@ -6,7 +6,6 @@ Legend
 
 TODO-List
 ---------
-[*] Licence
 [-] Add hivex stuff and registry API
 [-] Add LsaSecrets retreival and decryption stuff (cf. LsaSecrets.txt)
 [-] Handle Win7 decryption process
@@ -16,16 +15,16 @@ TODO-List
 	=> requires Moonsol Pro at this time
 [*] Retreive DPAPI_SYSTEM secret in hyberfil.sys
 	=> requires Moonsol Pro at this time
-[-] Add MSN Messenger decryption probe
-[-] Add X.509 certificate and EFS decryption probe
+[*] Add MSN Messenger decryption probe
+[*] Add X.509 certificate and EFS decryption probe
 [-] Add ciphering capabilities
 [-] Improve ciphering capabilities by correctly handling registry keys
-[-] Check HMAC after decryption of CREDHIST
+[-] Check HMAC after decryption of CREDHIST (don't know if it's possible)
 [-] Rewrite parsers to correctly handle revision of serialized data
 [-] Add support for Windows Mobile
-[-] Add Skype decryption probe
+[*] Add Skype decryption probe
 [-] Add BLOB detection heuristic
 [-] Work on Domain Controller's databases
 [-] Correctly handle DomainKey bloc in Masterkeys
 [-] Analyze BK-* keys and guess what's their purpose
-[-] Add CredStore probe
+[*] Add CredStore probe
