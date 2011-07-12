@@ -1,0 +1,68 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-Certificate.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+typedef struct {
+    DWORD   Data1;
+    WORD    Data2;
+    WORD    Data3;
+    BYTE    Data4[8];
+} GUID;
+
+typedef struct {
+    DWORD   dwRevision;
+    GUID    gProvider;
+    DWORD   cbMkeys;
+    GUID    gMkeys[cbMkeys];
+    DWORD   dwFlags;
+    DWORD   cbDescr;
+    WORD    wszDescr[cbDescr >> 1];
+    DWORD   idCipher;
+    DWORD   dwKey;
+    DWORD   cbData;
+    BYTE    pbData[cbData];
+    DWORD   cbStrong;
+    BYTE    pbStrong[cbStrong];
+    DWORD   idHash;
+    DWORD   cbHash;
+    DWORD   cbSalt;
+    BYTE    pbSalt[cbSalt];
+    DWORD   cbCiphertext;
+    BYTE    pbCiphertext[cbCiphertext];
+    DWORD   cbHmac;
+    BYTE    pbHmac[cbHmac];
+} DPAPIBlob;
+
+typedef struct {
+    DWORD dwRevision;
+    DWORD dwUnk1;
+    DWORD cbDescr;
+    DWORD dwUnk2[2];
+    DWORD cbHeader;
+    DWORD cbPrivateKey;
+    DWORD cbCrc;
+    DWORD dwUnk3;
+    DWORD cbFlags;
+    CHAR  szDescription[cbDescr];
+} CertHeader;
+
+typedef struct {
+    DWORD dwUnk4[5];
+    CHAR    szSig[4]; // RSA1
+    DWORD   dwLen;
+    DWORD   dwUnk[3];
+    BYTE    pbData[dwLen];
+} RSAHeader;
+
+CertHeader head;
+if (head.cbHeader > 0)
+    RSAHeader RSAHead;
+if (head.cbPrivateKey > 0)
+    DPAPIBlob RSAPrivateKey;
+if (head.cbFlags > 0)
+    DPAPIBlob RSAFlags;

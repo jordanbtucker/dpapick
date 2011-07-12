@@ -1,0 +1,63 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-Masterkey.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+typedef struct {
+    DWORD   Data1;
+    WORD    Data2;
+    WORD    Data3;
+    BYTE    Data4;
+} GUID;
+
+typedef struct {
+    DWORD   dwRevision;
+    BYTE    pbIV[16];
+    DWORD   dwRounds;
+    DWORD   idHash;
+    DWORD   idCipher;
+} MkeyHeader;
+
+typedef struct {
+    DWORD   dwRevision;
+    DWORD   cbSecret;
+    DWORD   cbAccessCheck;
+    GUID    gKey;
+    BYTE    pbSecret[cbSecret];
+    BYTE    pbAccessCheck[cbAccessCheck];
+} DomainKey;
+
+typedef struct {
+    DWORD   dwRevision;
+    GUID    gCred;
+} Credhist;
+
+typedef struct {
+    DWORD   dwRevision;
+    DWORD   dwUnk[2];
+    SHORT   wszGUID[36];
+    DWORD   dwUnk2[2];
+    DWORD   dwFlags;
+    QWORD   cbMasterKey;
+    QWORD   cbBackupKey;
+    QWORD   cbCredhist;
+    QWORD   cbDomainKey;
+} MasterkeyHeader;
+
+MasterkeyHeader head;
+if (head.cbMasterKey > 0) {
+    MkeyHeader   mkeyHead;
+    BYTE    pbCipherMkey[head.cbMasterKey - sizeof (MkeyHeader)];
+}
+if (head.cbBackupKey > 0) {
+    MkeyHeader   backupKeyHead;
+    BYTE    pbCipherBackupkey[head.cbBackupKey - sizeof (MkeyHeader)];
+}
+if (head.cbCredhist > 0)
+    Credhist    cred;
+if (head.cbDomainKey > 0)
+    DomainKey   domainKey;
