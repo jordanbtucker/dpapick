@@ -12,12 +12,7 @@
 ##                                                                         ##
 ##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
 ##                                                                         ##
-## This program is distributed under dual cumulative licences:             ##
-##    * GPLv3 for non-commercial use of this program (see LICENCE.GPLv3)   ##
-##    * EADS licence for commercial use (see LICENCE.EADS)                 ##
-##                                                                         ##
-## If you want to make a commercial tool using this program, contact the   ##
-## author for information and a quotation                                  ##
+## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
@@ -34,7 +29,7 @@ setup(
     author = 'Jean-Michel PICOD',
     author_email = 'jean-michel.picod@cassidian.com',
     description = 'DPAPI decryption toolkit',
-    license = 'GPLv3 + EADS licence',
+    license = 'GPLv3',
     # keywords = '',
     url = 'http://www.dpapick.com',
 )
