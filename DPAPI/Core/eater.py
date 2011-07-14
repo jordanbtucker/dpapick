@@ -31,6 +31,12 @@ class Eater:
             fmt = self.endianness+fmt
         return fmt, struct.calcsize(fmt)
 
+    def read(self, fmt):
+        v = struct.unpack_from(fmt, self.raw, self.ofs)
+        if len(v) == 1:
+            v = v[0]
+        return v
+
     def eat(self, fmt):
         fmt,sz = self.prepare_fmt(fmt)
         v = struct.unpack_from(fmt, self.raw, self.ofs)
