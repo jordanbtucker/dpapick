@@ -7,35 +7,8 @@
 // Purpose:     Support DPAPI structs
 //--------------------------------------
 
-typedef struct {
-    DWORD   Data1;
-    WORD    Data2;
-    WORD    Data3;
-    BYTE    Data4;
-} GUID;
+#include "DPAPI-blob-internal.bt"
 
-typedef struct {
-    DWORD   dwRevision;
-    GUID    gProvider;
-    DWORD   cbMkeys;
-    GUID    gMkeys[cbMkeys];
-    DWORD   dwFlags;
-    DWORD   cbDescr;
-    WORD    wszDescr[cbDescr >> 1];
-    DWORD   idCipher;
-    DWORD   dwKey;
-    DWORD   cbData;
-    BYTE    pbData[cbData];
-    DWORD   cbStrong;
-    BYTE    pbStrong[cbStrong];
-    DWORD   idHash;
-    DWORD   cbHash;
-    DWORD   cbSalt;
-    BYTE    pbSalt[cbSalt];
-    DWORD   cbCiphertext;
-    BYTE    pbCiphertext[cbCiphertext];
-    DWORD   cbHmac;
-    BYTE    pbHmac[cbHmac];
-} DPAPIBlob;
+LittleEndian();
 
-DPAPIBlob blob;
+DPAPIBlob b;

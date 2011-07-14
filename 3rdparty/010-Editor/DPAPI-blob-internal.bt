@@ -1,0 +1,60 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-blob.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+#include "GUID.bt"
+
+#ifndef __DPAPIBLOB__
+#define __DPAPIBLOB__
+
+LittleEndian();
+
+typedef struct {
+    DWORD   dwRevision;
+    GUID    gProvider;
+    DWORD   cbMkeys;
+    GUID    gMkeys[cbMkeys];
+    DWORD   dwFlags <format=hex>;
+    DWORD   cbDescr;
+    wchar_t wszDescr[cbDescr >> 1];
+    DWORD   idCipher <format=hex>;
+    DWORD   dwKey;
+    DWORD   cbData;
+    BYTE    pbData[cbData] <format=hex>;
+    DWORD   cbStrong;
+    BYTE    pbStrong[cbStrong] <format=hex>;
+    DWORD   idHash <format=hex>;
+    DWORD   cbHash;
+    DWORD   cbSalt;
+    BYTE    pbSalt[cbSalt] <format=hex>;
+    DWORD   cbCiphertext;
+    BYTE    pbCiphertext[cbCiphertext] <format=hex>;
+    DWORD   cbHmac;
+    BYTE    pbHmac[cbHmac] <format=hex>;
+} DPAPIBlob; //<size=sizeOfBlob>;
+
+int sizeOfBlob(DPAPIBlob &b) {
+    local int size = sizeof (DWORD) + sizeof (GUID);
+    local int tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof(GUID) + sizeof (DWORD);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (wchar_t) + 2 * sizeof (DWORD);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (BYTE);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (BYTE) + 2 * sizeof (DWORD);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (BYTE);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (BYTE);
+    tmp = ReadUInt(startof(b) + size);
+    size = size + sizeof (DWORD) + tmp * sizeof (BYTE);
+    return size;
+}
+
+#endif
