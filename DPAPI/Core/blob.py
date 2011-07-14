@@ -30,7 +30,7 @@ class DPAPIBlob(DataStruct):
 
     def parse(self, data):
         self.version = data.eat("L")
-        self.provider = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
+        self.provider = "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x" % data.eat("L2H8B")
 
         ## For HMAC computation
         blobStart = data.ofs
@@ -40,7 +40,7 @@ class DPAPIBlob(DataStruct):
         while nb > 0:
             p = data.eat("L2H8B")
             nb -= 1
-            self.guids.append("%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % p)
+            self.guids.append("%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x" % p)
 
         self.flags = data.eat("L")
         self.description = data.eat_length_and_string("L").decode("UTF-16LE").encode("utf-8")
