@@ -20,7 +20,7 @@ from DPAPI.Core.eater import DataStruct
 from DPAPI.Core import masterkey
 import hashlib
 
-class DPAPIProbe(DataStruct):
+class DPAPIProbe(DataStruct, object):
 
     def __init__(self, raw=None):
         self.dpapiblob = None
