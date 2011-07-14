@@ -32,13 +32,15 @@ information such as:
 We also recommend the use of MoonSols Windows Memory Toolkit to convert
 hibernation file to usable memory dumps and be able to extract credentials
 from it.
-For more information about Moonsols products, see http://www.moonsols/com
+For more information about Moonsols products, see <http://www.moonsols.com>
 
 
 AUTHOR
 
 DPAPIck is written by Jean-Michel Picod (jean-michel.picod@cassidian.com)
-who works for the Cyber Security Center of Cassidian, an EADS company
+with the help from Ivan Fontarensky (ivan.fontarensky@cassidiant.com)
+who work for the Cyber Security Center of Cassidian, an EADS company,
+and Elie Bursztein (elie at elie dot im)
 
 
 LICENSE
