@@ -27,4 +27,3 @@ TODO-List
 [-] Work on Domain Controller's databases
 [-] Correctly handle DomainKey bloc in Masterkeys
 [-] Analyze BK-* keys and guess what's their purpose
-[*] Add CredStore probe
