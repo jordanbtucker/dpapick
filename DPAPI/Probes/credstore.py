@@ -38,30 +38,44 @@ class CredentialStore(DPAPIProbe):
                 6: 'Domain extended'
                 }
         _persist = [ "No", "Session", "Local machine", "Entreprise" ]
+
         def parse(self, data):
-            data.eat("2L")
-            self.credtype = data.eat("L")
-            self.timestamp = data.eat("Q") ##timestamp 64bits
+            tmp = data.read("L")
+            d = data
+            if tmp == 0:
+                ## Windows 7
+                data.read("L")
+                self.credtype = data.eat("L")
+                data.eat("L")
+            else:
+                ## Windows XP
+                d = data.eat_sub(tmp)
+                d.eat("2L")
+                self.credtype = d.eat("L")
+            self.timestamp = d.eat("Q") ##timestamp 64bits
             if self.timestamp > 0:
                 self.timestamp /= 10000000
                 self.timestamp -= 11644473600
 
-            data.eat("L") ##NULL
-            self.persist = data.eat("L")
-            data.eat("3L") ##NULL
-            self.name = data.eat_length_and_string("L").decode("UTF-16LE")
-            self.comment = data.eat_length_and_string("L").decode("UTF-16LE")
-            self.alias = data.eat_length_and_string("L").decode("UTF-16LE")
-            self.username = data.eat_length_and_string("L").decode("UTF-16LE")
+            d.eat("L")
+            self.persist = d.eat("L")
+            d.eat("3L") ##NULL
+            self.name = d.eat_length_and_string("L").decode("UTF-16LE")
+            self.comment = d.eat_length_and_string("L").decode("UTF-16LE")
+            self.alias = d.eat_length_and_string("L").decode("UTF-16LE")
+            if tmp == 0:
+                ## windows 7
+                d.eat_length_and_string("L")
+            self.username = d.eat_length_and_string("L").decode("UTF-16LE")
             self.password = None
             if self.credtype == 1 or self.credtype == 4:
-                self.dpapiblob = blob.DPAPIBlob(data.eat_length_and_string("L"))
+                self.dpapiblob = blob.DPAPIBlob(d.eat_length_and_string("L"))
             elif self.credtype == 2: # domain password
-                self.password = data.eat_length_and_string("L")
+                self.password = d.eat_length_and_string("L")
                 seld.password = self.password.decode('UTF-16LE')
                 self.dpapiblob = None
             elif self.credtype == 3: # domain certificate
-                self.password = data.eat_length_and_string("L")
+                self.password = d.eat_length_and_string("L")
                 self.dpapiblob = None
 
             self.entropy = self._entropy.get(self.credtype)
@@ -107,8 +121,9 @@ class CredentialStore(DPAPIProbe):
             self.totallen = data.eat("L")
             self.creds = []
             while data:
-                self.creds.append(CredentialStore.Credential(
-                    data.eat_string(data.read("L"))))
+                c = CredentialStore.Credential()
+                c.parse(data)
+                self.creds.append(c)
 
         def postprocess(self, **k):
             for c in self.creds:
