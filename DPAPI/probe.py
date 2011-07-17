@@ -70,6 +70,7 @@ class DPAPIProbe(DataStruct, object):
                         for cred in mkeypool.creds[sid].entries_list:
                             mk.decryptWithHash(sid, cred.pwdhash)
                             if mk.decrypted:
+                                mkeypool.creds[sid].validate()
                                 break
                 if mk.decrypted:
                     self.dpapiblob.decrypt(mk.get_key(),
