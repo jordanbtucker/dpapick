@@ -123,6 +123,7 @@ class CredHistFile(DataStruct):
     def __init__(self, raw=None):
         self.entries_list = []
         self.entries = {}
+        self.valid = False
         
         DataStruct.__init__(self, raw)
 
@@ -141,7 +142,12 @@ class CredHistFile(DataStruct):
         self.entries[x.guid] = x
         self.entries_list.append(x)
  
+    def validate(self):
+        self.valid = True
+
     def decryptWithHash(self, h):
+        if self.valid == True:
+            return
         curhash = h
         for entry in self.entries_list:
             entry.decryptWithHash(curhash)
