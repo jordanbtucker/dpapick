@@ -101,6 +101,11 @@ class CredhistEntry(DataStruct):
     def decryptWithPassword(self, password):
         return self.decryptWithHash(hashlib.sha1(password.encode("UTF-16LE")).digest())
 
+    def jtr_shadow(self):
+        if self.pwdhash is not None:
+            return "%s:md5_gen(1400)%s" % (self.userSID, self.pwdhash.encode('hex'))
+        return ""
+
     def __repr__(self):
         s = ["""CredHist entry
         revision = %(revision)x
@@ -155,6 +160,14 @@ class CredHistFile(DataStruct):
 
     def decryptWithPassword(self, pwd):
         return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest())
+
+    def jtr_shadow(self, validonly=False):
+        if validonly and not self.valid:
+            return ""
+        s = []
+        for e in self.entries.itervalues():
+            s.append(e.jtr_shadow())
+        return "\n".join(s)
 
     def __repr__(self):
         s = ["CredHistPool:  %s" % self.curr_guid]
