@@ -5,3 +5,5 @@ syntax:glob
 *.orig
 *.pyc
 *~
+.git/*
+.gitignore
