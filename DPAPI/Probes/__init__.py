@@ -16,6 +16,6 @@
 ##                                                                         ##
 #############################################################################
 
-__all__ = [ 'wifi', 'chrome', 'gtalk', 'credstore' ]
+__all__ = [ 'wifi', 'chrome', 'gtalk', 'credstore', 'IE7' ]
 
 # vim:ts=4:expandtab:sw=4
