@@ -51,6 +51,13 @@ const file_hint_t file_hint_mk_dpapi= {
 static const unsigned char mk_dpapi_header[12] = {0x02,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0X00,0x00,0x00,0x00};
 
 typedef struct {
+    unsigned int     Data1;
+    unsigned short   Data2;
+    unsigned short   Data3;
+    unsigned char    Data4[8];
+} DGUID;
+
+typedef struct {
     unsigned int   dwRevision;
     unsigned int   dwUnk[2];
     unsigned char  wszGUID[72];
@@ -70,9 +77,21 @@ typedef struct {
     unsigned int  idCipher;
 } MkeyHeader;// <size=32>;
 
+typedef struct {
+    unsigned int   dwRevision;
+    unsigned int   cbSecret;
+    unsigned int   cbAccessCheck;
+    DGUID	     *gKey;
+    unsigned char    *pbSecret;
+    unsigned char    *pbAccessCheck;
+} DomainKey;// <size=sizeOfDomainKey>;
+
+typedef struct {
+    unsigned int   dwRevision;
+    DGUID    	   gCred;
+} Credhist;// <size=20>;
 
 
-FILE* pFile;
 
 static void register_header_check_mk_dpapi(file_stat_t *file_stat)
 {
@@ -89,24 +108,14 @@ static void register_header_check_mk_dpapi(file_stat_t *file_stat)
 static int header_check_mk_dpapi(const unsigned char *buffer, const unsigned int buffer_size, const unsigned int safe_header_only, const file_recovery_t *file_recovery, file_recovery_t *file_recovery_new)
 {
 
-/*
- pFile = fopen ("___debug___mkk2.txt","a");
-
-
-
-  fprintf(pFile,"+header_check_mk_dpapi\n");
-*/
-
 
   if(memcmp(buffer,mk_dpapi_header,sizeof(mk_dpapi_header))==0)
   {
-    reset_file_recovery(file_recovery_new);
-    file_recovery_new->min_filesize=0x1000,
-    file_recovery_new->extension=file_hint_mk_dpapi.extension;
     
-    MasterkeyHeader mkh;
-    MkeyHeader mkeyHead;
-
+    MasterkeyHeader 	mkh;
+    MkeyHeader 		mkeyHead;
+    Credhist    	cred;
+    DomainKey   	domainKey;    
     int size = 0;
 
     memcpy(&mkh,buffer,sizeof(MasterkeyHeader));
@@ -120,7 +129,7 @@ static int header_check_mk_dpapi(const unsigned char *buffer, const unsigned int
       return 0;
     }
 
-/*
+
 
     if (mkh.cbMasterKey > 0) 
     {
@@ -135,26 +144,45 @@ static int header_check_mk_dpapi(const unsigned char *buffer, const unsigned int
 	size += mkh.cbBackupKey - sizeof (MkeyHeader);
     }
 
-*/
-         
-/*
-    fprintf(pFile,"dwRevision=%X\n",mkh.dwRevision);
-    fprintf(pFile,"dwFlags=%X\n",mkh.dwFlags);
-    fprintf(pFile,"GUID=%c%c%c\n",mkh.wszGUID[0],mkh.wszGUID[2],mkh.wszGUID[4]);
-    fprintf(pFile,"idHash=%X\n",mkeyHead.idHash);
-*/
+    if (mkh.cbCredhist > 0)
+    {
+        memcpy(&cred,buffer+size,sizeof(Credhist));                   
+	size += sizeof(Credhist);        
+    }
+    if (mkh.cbDomainKey > 0)
+    {
+	memcpy(&domainKey.dwRevision,buffer+size,sizeof(unsigned int));
+	size += sizeof(unsigned int);
+	memcpy(&domainKey.cbSecret,buffer+size,sizeof(unsigned int));
+	size += sizeof(unsigned int);
+	memcpy(&domainKey.cbAccessCheck,buffer+size,sizeof(unsigned int));
+	size += sizeof(unsigned int);
+	
+	memcpy(domainKey.gKey,buffer+size,sizeof(DGUID));
+	size += sizeof(DGUID);
+	
+	//memcpy((domainKey.pbSecret),buffer+size,domainKey.cbSecret);
+	//memcpy((omainKey.pbAccessCheck),buffer+size,domainKey.pbAccessCheck));
 
+	size += domainKey.cbSecret;
+	size += domainKey.pbAccessCheck;
 
+    }
 
+    reset_file_recovery(file_recovery_new);
+    file_recovery_new->extension=file_hint_mk_dpapi.extension;
+    file_recovery_new->min_filesize=16;
+    file_recovery_new->calculated_file_size=size;
 
+    if (size > 100000)
+      return 0;
 
-//    fclose(pFile);    
     return 1;
   }
 
-//  pclose(pFile);
   return 0;
 }
+
 
 //
 // Code rapide, verifie seulement si c'est une chaine en 
@@ -164,10 +192,10 @@ static int check_guid_utf16(char* candidate,int size)
 {
   int i=0;
   for (i=0;i<size-2;i=i+2)
-    fprintf(pFile,"%c ",candidate[i]);    
+//   fprintf(pFile,"%c ",candidate[i]);    
     if (!((candidate[i]!=0x00) && (candidate[i+1]==0x00)))
       return 0;
-    fprintf(pFile,"\n");
+//    fprintf(pFile,"\n");
 
 
   return 1;
