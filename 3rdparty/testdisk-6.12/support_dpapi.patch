@@ -1,6 +1,7 @@
 Seulement dans ../Workspace/OWAD/testdisk-6.12/src: .deps
 Seulement dans ../Workspace/OWAD/testdisk-6.12/src: fidentify.log
 Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_blobdpapi.c
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_blobdpapi.c~
 diff -u testdisk-6.12/src/file_list.c ../Workspace/OWAD/testdisk-6.12/src/file_list.c
 --- testdisk-6.12/src/file_list.c	2011-04-26 10:16:09.000000000 +0200
 +++ ../Workspace/OWAD/testdisk-6.12/src/file_list.c	2011-07-14 18:04:04.184448641 +0200
@@ -37,7 +38,7 @@ diff -u testdisk-6.12/src/file_list.c ../Workspace/OWAD/testdisk-6.12/src/file_l
    { .enable=0, .file_hint=&file_hint_mov  },
    { .enable=0, .file_hint=&file_hint_mp3  },
 Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_masterkeydpapi.c
-Seulement dans ../Workspace/OWAD/testdisk-6.12/src: .file_masterkeydpapi.c.swp
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_masterkeydpapi.c~
 Seulement dans ../Workspace/OWAD/testdisk-6.12/src: Makefile
 diff -u testdisk-6.12/src/Makefile.am ../Workspace/OWAD/testdisk-6.12/src/Makefile.am
 --- testdisk-6.12/src/Makefile.am	2011-04-26 10:16:09.000000000 +0200
