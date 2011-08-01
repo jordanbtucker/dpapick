@@ -1,0 +1,84 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-Masterkey.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+#include "GUID.bt"
+
+#ifndef __MASTERKEY__
+#define __MASTERKEY__
+
+LittleEndian();
+
+typedef struct {
+    DWORD   dwRevision;
+    BYTE    pbIV[16] <format=hex>;
+    DWORD   dwRounds;
+    DWORD   idHash <format=hex>;
+    DWORD   idCipher <format=hex>;
+} MkeyHeader;// <size=32>;
+
+typedef struct {
+    DWORD   dwRevision;
+    DWORD   cbSecret;
+    DWORD   cbAccessCheck;
+    GUID    gKey;
+    BYTE    pbSecret[cbSecret] <format=hex>;
+    BYTE    pbAccessCheck[cbAccessCheck] <format=hex>;
+} DomainKey;// <size=sizeOfDomainKey>;
+
+int sizeOfDomainKey(DomainKey &b) {
+    return 3 * sizeof (DWORD) + sizeof (GUID) +
+        ReadUInt(startof(b) + sizeof (DWORD)) * sizeof (BYTE) +
+        ReadUInt(startof(b) + 2 * sizeof (DWORD)) * sizeof (BYTE);
+}
+
+typedef struct {
+    DWORD   dwRevision;
+    GUID    gCred;
+} Credhist;// <size=20>;
+
+typedef struct {
+    DWORD   dwRevision;
+    DWORD   dwUnk[2] <hidden=true>;
+    wchar_t wszGUID[36];
+    DWORD   dwUnk2[2] <hidden=true>;
+    DWORD   dwFlags <format=hex>;
+    QWORD   cbMasterKey;
+    QWORD   cbBackupKey;
+    QWORD   cbCredhist;
+    QWORD   cbDomainKey;
+} MasterkeyHeader;// <size=128>;
+
+typedef struct {
+    MasterkeyHeader head;
+    if (head.cbMasterKey > 0) {
+        MkeyHeader   mkeyHead;
+        BYTE    pbCipherMkey[head.cbMasterKey - sizeof (MkeyHeader)] <format=hex>;
+    }
+    if (head.cbBackupKey > 0) {
+        MkeyHeader   backupKeyHead;
+        BYTE    pbCipherBackupkey[head.cbBackupKey - sizeof (MkeyHeader)] <format=hex>;
+    }
+    if (head.cbCredhist > 0)
+        Credhist    cred;
+    if (head.cbDomainKey > 0)
+        DomainKey   domainKey;
+} MasterKeyFile;// <size=sizeOfMkeyFile>
+
+int sizeOfMkeyFile(MasterKeyFile &b) {
+    local int tmp = 6 * sizeof (DWORD) + 36 * sizeof (wchar_t);
+    return sizeof (MasterkeyHeader) +
+        ReadUQuad(startof(b) + tmp) +
+        ReadUQuad(startof(b) + tmp + sizeof (QWORD)) +
+        ReadUQuad(startof(b) + tmp + 2 * sizeof (QWORD)) +
+        ReadUQuad(startof(b) + tmp + 3 * sizeof (QWORD));
+}
+
+#endif
+
+MasterKeyFile f;

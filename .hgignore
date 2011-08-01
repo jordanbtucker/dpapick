@@ -1,0 +1,9 @@
+
+syntax:glob
+
+*.rej
+*.orig
+*.pyc
+*~
+.git/*
+.gitignore

@@ -1,0 +1,563 @@
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: .deps
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: fidentify.log
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_blobdpapi.c
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_blobdpapi.c~
+diff -u testdisk-6.12/src/file_list.c ../Workspace/OWAD/testdisk-6.12/src/file_list.c
+--- testdisk-6.12/src/file_list.c	2011-04-26 10:16:09.000000000 +0200
++++ ../Workspace/OWAD/testdisk-6.12/src/file_list.c	2011-07-14 18:04:04.184448641 +0200
+@@ -53,6 +53,7 @@
+ extern const file_hint_t file_hint_bim;
+ extern const file_hint_t file_hint_bkf;
+ extern const file_hint_t file_hint_blend;
++extern const file_hint_t file_hint_blob_dpapi;
+ extern const file_hint_t file_hint_bmp;
+ extern const file_hint_t file_hint_bz2;
+ extern const file_hint_t file_hint_cab;
+@@ -150,6 +151,7 @@
+ extern const file_hint_t file_hint_mfg;
+ extern const file_hint_t file_hint_mid;
+ extern const file_hint_t file_hint_mk5;
++extern const file_hint_t file_hint_mk_dpapi;
+ extern const file_hint_t file_hint_mkv;
+ extern const file_hint_t file_hint_mov;
+ extern const file_hint_t file_hint_mp3;
+@@ -281,6 +283,7 @@
+   { .enable=0, .file_hint=&file_hint_bim  },
+   { .enable=0, .file_hint=&file_hint_bkf  },
+   { .enable=0, .file_hint=&file_hint_blend },
++  { .enable=0, .file_hint=&file_hint_blob_dpapi },
+   { .enable=0, .file_hint=&file_hint_bmp  },
+   { .enable=0, .file_hint=&file_hint_bz2  },
+   { .enable=0, .file_hint=&file_hint_cab  },
+@@ -377,6 +380,7 @@
+   { .enable=0, .file_hint=&file_hint_mfg  },
+   { .enable=0, .file_hint=&file_hint_mid  },
+   { .enable=0, .file_hint=&file_hint_mk5  },
++  { .enable=0, .file_hint=&file_hint_mk_dpapi  },
+   { .enable=0, .file_hint=&file_hint_mkv  },
+   { .enable=0, .file_hint=&file_hint_mov  },
+   { .enable=0, .file_hint=&file_hint_mp3  },
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_masterkeydpapi.c
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: file_masterkeydpapi.c~
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: Makefile
+diff -u testdisk-6.12/src/Makefile.am ../Workspace/OWAD/testdisk-6.12/src/Makefile.am
+--- testdisk-6.12/src/Makefile.am	2011-04-26 10:16:09.000000000 +0200
++++ ../Workspace/OWAD/testdisk-6.12/src/Makefile.am	2011-07-14 18:04:36.394448632 +0200
+@@ -51,7 +51,8 @@
+ 			  file_bim.c \
+ 			  file_bkf.c \
+ 			  file_bld.c \
+-			  file_bmp.c \
++			  file_blobdpapi.c \
++                          file_bmp.c \
+ 			  file_bz2.c \
+ 			  file_cab.c \
+ 			  file_cam.c \
+@@ -140,6 +141,7 @@
+ 			  file_m2ts.c \
+ 			  file_mat.c \
+ 			  file_max.c \
++                          file_masterkeydpapi.c\
+ 			  file_mb.c \
+ 			  file_mcd.c \
+ 			  file_mdb.c \
+diff -u testdisk-6.12/src/Makefile.in ../Workspace/OWAD/testdisk-6.12/src/Makefile.in
+--- testdisk-6.12/src/Makefile.in	2011-05-11 20:54:11.000000000 +0200
++++ ../Workspace/OWAD/testdisk-6.12/src/Makefile.in	2011-07-14 18:04:38.394448632 +0200
+@@ -61,73 +61,74 @@
+ 	file_apple.$(OBJEXT) file_arj.$(OBJEXT) file_asf.$(OBJEXT) \
+ 	file_asm.$(OBJEXT) file_atd.$(OBJEXT) file_au.$(OBJEXT) \
+ 	file_bac.$(OBJEXT) file_bim.$(OBJEXT) file_bkf.$(OBJEXT) \
+-	file_bld.$(OBJEXT) file_bmp.$(OBJEXT) file_bz2.$(OBJEXT) \
+-	file_cab.$(OBJEXT) file_cam.$(OBJEXT) file_cdt.$(OBJEXT) \
+-	file_chm.$(OBJEXT) file_class.$(OBJEXT) file_cm.$(OBJEXT) \
+-	file_compress.$(OBJEXT) file_cow.$(OBJEXT) file_crw.$(OBJEXT) \
+-	file_ctg.$(OBJEXT) file_cwk.$(OBJEXT) file_d2s.$(OBJEXT) \
+-	file_dat.$(OBJEXT) file_dbf.$(OBJEXT) file_dbn.$(OBJEXT) \
+-	file_dex.$(OBJEXT) file_dim.$(OBJEXT) file_dir.$(OBJEXT) \
+-	file_djv.$(OBJEXT) file_dmp.$(OBJEXT) file_doc.$(OBJEXT) \
+-	file_dpx.$(OBJEXT) file_drw.$(OBJEXT) file_ds2.$(OBJEXT) \
+-	file_dsc.$(OBJEXT) file_dss.$(OBJEXT) file_dta.$(OBJEXT) \
+-	file_dump.$(OBJEXT) file_dv.$(OBJEXT) file_dwg.$(OBJEXT) \
+-	file_dxf.$(OBJEXT) file_e01.$(OBJEXT) file_edb.$(OBJEXT) \
+-	file_ecryptfs.$(OBJEXT) file_elf.$(OBJEXT) file_emf.$(OBJEXT) \
+-	file_evt.$(OBJEXT) file_exe.$(OBJEXT) file_exs.$(OBJEXT) \
+-	file_ext.$(OBJEXT) file_ext2.$(OBJEXT) file_fat.$(OBJEXT) \
+-	file_fbk.$(OBJEXT) file_fcp.$(OBJEXT) file_fcs.$(OBJEXT) \
+-	file_fdb.$(OBJEXT) file_fh10.$(OBJEXT) file_fh5.$(OBJEXT) \
+-	file_filevault.$(OBJEXT) file_fits.$(OBJEXT) \
+-	file_flac.$(OBJEXT) file_flp.$(OBJEXT) file_flv.$(OBJEXT) \
+-	file_fob.$(OBJEXT) file_fp5.$(OBJEXT) file_fp7.$(OBJEXT) \
+-	file_freeway.$(OBJEXT) file_frm.$(OBJEXT) file_fs.$(OBJEXT) \
+-	file_gct.$(OBJEXT) file_gho.$(OBJEXT) file_gif.$(OBJEXT) \
+-	file_gm6.$(OBJEXT) file_gp5.$(OBJEXT) file_gpg.$(OBJEXT) \
+-	file_gz.$(OBJEXT) file_hds.$(OBJEXT) file_hr9.$(OBJEXT) \
+-	file_http.$(OBJEXT) file_icc.$(OBJEXT) file_ico.$(OBJEXT) \
+-	file_ifo.$(OBJEXT) file_imb.$(OBJEXT) file_indd.$(OBJEXT) \
+-	file_iso.$(OBJEXT) file_it.$(OBJEXT) file_itu.$(OBJEXT) \
+-	file_jpg.$(OBJEXT) file_kdb.$(OBJEXT) file_ldf.$(OBJEXT) \
+-	file_lnk.$(OBJEXT) file_logic.$(OBJEXT) file_lso.$(OBJEXT) \
+-	file_lzo.$(OBJEXT) file_m2ts.$(OBJEXT) file_mat.$(OBJEXT) \
+-	file_max.$(OBJEXT) file_mb.$(OBJEXT) file_mcd.$(OBJEXT) \
+-	file_mdb.$(OBJEXT) file_mdf.$(OBJEXT) file_mfa.$(OBJEXT) \
+-	file_mfg.$(OBJEXT) file_mid.$(OBJEXT) file_mk5.$(OBJEXT) \
+-	file_mkv.$(OBJEXT) file_mov.$(OBJEXT) file_mp3.$(OBJEXT) \
+-	file_mpg.$(OBJEXT) file_mrw.$(OBJEXT) file_mus.$(OBJEXT) \
+-	file_mxf.$(OBJEXT) file_myo.$(OBJEXT) file_mysql.$(OBJEXT) \
+-	file_nds.$(OBJEXT) file_njx.$(OBJEXT) file_nk2.$(OBJEXT) \
+-	file_nsf.$(OBJEXT) file_ogg.$(OBJEXT) file_one.$(OBJEXT) \
+-	file_orf.$(OBJEXT) file_paf.$(OBJEXT) file_pap.$(OBJEXT) \
+-	file_pcap.$(OBJEXT) file_pct.$(OBJEXT) file_pcx.$(OBJEXT) \
+-	file_pdf.$(OBJEXT) file_pfx.$(OBJEXT) file_png.$(OBJEXT) \
+-	file_pnm.$(OBJEXT) file_prc.$(OBJEXT) file_prt.$(OBJEXT) \
+-	file_ps.$(OBJEXT) file_psd.$(OBJEXT) file_psf.$(OBJEXT) \
+-	file_psp.$(OBJEXT) file_pst.$(OBJEXT) file_ptb.$(OBJEXT) \
+-	file_ptf.$(OBJEXT) file_pyc.$(OBJEXT) file_pzf.$(OBJEXT) \
+-	file_pzh.$(OBJEXT) file_qbb.$(OBJEXT) file_qdf.$(OBJEXT) \
+-	file_qkt.$(OBJEXT) file_qxd.$(OBJEXT) file_r3d.$(OBJEXT) \
+-	file_ra.$(OBJEXT) file_raf.$(OBJEXT) file_rar.$(OBJEXT) \
+-	file_raw.$(OBJEXT) file_rdc.$(OBJEXT) file_reg.$(OBJEXT) \
+-	file_res.$(OBJEXT) file_rfp.$(OBJEXT) file_riff.$(OBJEXT) \
+-	file_rm.$(OBJEXT) file_rns.$(OBJEXT) file_rpm.$(OBJEXT) \
+-	file_rw2.$(OBJEXT) file_ses.$(OBJEXT) file_sib.$(OBJEXT) \
+-	file_sig.$(OBJEXT) file_sit.$(OBJEXT) file_skd.$(OBJEXT) \
+-	file_skp.$(OBJEXT) file_sp3.$(OBJEXT) file_spe.$(OBJEXT) \
+-	file_spf.$(OBJEXT) file_spss.$(OBJEXT) file_sql.$(OBJEXT) \
+-	file_sqm.$(OBJEXT) file_stl.$(OBJEXT) file_stu.$(OBJEXT) \
+-	file_swf.$(OBJEXT) file_tar.$(OBJEXT) file_tax.$(OBJEXT) \
+-	file_tib.$(OBJEXT) file_tiff.$(OBJEXT) file_torrent.$(OBJEXT) \
+-	file_tph.$(OBJEXT) file_ttf.$(OBJEXT) file_txt.$(OBJEXT) \
+-	file_tz.$(OBJEXT) file_vault.$(OBJEXT) file_vdi.$(OBJEXT) \
+-	file_veg.$(OBJEXT) file_vfb.$(OBJEXT) file_vmdk.$(OBJEXT) \
+-	file_wdp.$(OBJEXT) file_win.$(OBJEXT) file_wks.$(OBJEXT) \
+-	file_wmf.$(OBJEXT) file_wnk.$(OBJEXT) file_wpd.$(OBJEXT) \
+-	file_wtv.$(OBJEXT) file_wv.$(OBJEXT) file_x3f.$(OBJEXT) \
+-	file_xcf.$(OBJEXT) file_xfi.$(OBJEXT) file_xm.$(OBJEXT) \
+-	file_xsv.$(OBJEXT) file_xpt.$(OBJEXT) file_xv.$(OBJEXT) \
+-	file_zip.$(OBJEXT)
++	file_bld.$(OBJEXT) file_blobdpapi.$(OBJEXT) file_bmp.$(OBJEXT) \
++	file_bz2.$(OBJEXT) file_cab.$(OBJEXT) file_cam.$(OBJEXT) \
++	file_cdt.$(OBJEXT) file_chm.$(OBJEXT) file_class.$(OBJEXT) \
++	file_cm.$(OBJEXT) file_compress.$(OBJEXT) file_cow.$(OBJEXT) \
++	file_crw.$(OBJEXT) file_ctg.$(OBJEXT) file_cwk.$(OBJEXT) \
++	file_d2s.$(OBJEXT) file_dat.$(OBJEXT) file_dbf.$(OBJEXT) \
++	file_dbn.$(OBJEXT) file_dex.$(OBJEXT) file_dim.$(OBJEXT) \
++	file_dir.$(OBJEXT) file_djv.$(OBJEXT) file_dmp.$(OBJEXT) \
++	file_doc.$(OBJEXT) file_dpx.$(OBJEXT) file_drw.$(OBJEXT) \
++	file_ds2.$(OBJEXT) file_dsc.$(OBJEXT) file_dss.$(OBJEXT) \
++	file_dta.$(OBJEXT) file_dump.$(OBJEXT) file_dv.$(OBJEXT) \
++	file_dwg.$(OBJEXT) file_dxf.$(OBJEXT) file_e01.$(OBJEXT) \
++	file_edb.$(OBJEXT) file_ecryptfs.$(OBJEXT) file_elf.$(OBJEXT) \
++	file_emf.$(OBJEXT) file_evt.$(OBJEXT) file_exe.$(OBJEXT) \
++	file_exs.$(OBJEXT) file_ext.$(OBJEXT) file_ext2.$(OBJEXT) \
++	file_fat.$(OBJEXT) file_fbk.$(OBJEXT) file_fcp.$(OBJEXT) \
++	file_fcs.$(OBJEXT) file_fdb.$(OBJEXT) file_fh10.$(OBJEXT) \
++	file_fh5.$(OBJEXT) file_filevault.$(OBJEXT) \
++	file_fits.$(OBJEXT) file_flac.$(OBJEXT) file_flp.$(OBJEXT) \
++	file_flv.$(OBJEXT) file_fob.$(OBJEXT) file_fp5.$(OBJEXT) \
++	file_fp7.$(OBJEXT) file_freeway.$(OBJEXT) file_frm.$(OBJEXT) \
++	file_fs.$(OBJEXT) file_gct.$(OBJEXT) file_gho.$(OBJEXT) \
++	file_gif.$(OBJEXT) file_gm6.$(OBJEXT) file_gp5.$(OBJEXT) \
++	file_gpg.$(OBJEXT) file_gz.$(OBJEXT) file_hds.$(OBJEXT) \
++	file_hr9.$(OBJEXT) file_http.$(OBJEXT) file_icc.$(OBJEXT) \
++	file_ico.$(OBJEXT) file_ifo.$(OBJEXT) file_imb.$(OBJEXT) \
++	file_indd.$(OBJEXT) file_iso.$(OBJEXT) file_it.$(OBJEXT) \
++	file_itu.$(OBJEXT) file_jpg.$(OBJEXT) file_kdb.$(OBJEXT) \
++	file_ldf.$(OBJEXT) file_lnk.$(OBJEXT) file_logic.$(OBJEXT) \
++	file_lso.$(OBJEXT) file_lzo.$(OBJEXT) file_m2ts.$(OBJEXT) \
++	file_mat.$(OBJEXT) file_max.$(OBJEXT) \
++	file_masterkeydpapi.$(OBJEXT) file_mb.$(OBJEXT) \
++	file_mcd.$(OBJEXT) file_mdb.$(OBJEXT) file_mdf.$(OBJEXT) \
++	file_mfa.$(OBJEXT) file_mfg.$(OBJEXT) file_mid.$(OBJEXT) \
++	file_mk5.$(OBJEXT) file_mkv.$(OBJEXT) file_mov.$(OBJEXT) \
++	file_mp3.$(OBJEXT) file_mpg.$(OBJEXT) file_mrw.$(OBJEXT) \
++	file_mus.$(OBJEXT) file_mxf.$(OBJEXT) file_myo.$(OBJEXT) \
++	file_mysql.$(OBJEXT) file_nds.$(OBJEXT) file_njx.$(OBJEXT) \
++	file_nk2.$(OBJEXT) file_nsf.$(OBJEXT) file_ogg.$(OBJEXT) \
++	file_one.$(OBJEXT) file_orf.$(OBJEXT) file_paf.$(OBJEXT) \
++	file_pap.$(OBJEXT) file_pcap.$(OBJEXT) file_pct.$(OBJEXT) \
++	file_pcx.$(OBJEXT) file_pdf.$(OBJEXT) file_pfx.$(OBJEXT) \
++	file_png.$(OBJEXT) file_pnm.$(OBJEXT) file_prc.$(OBJEXT) \
++	file_prt.$(OBJEXT) file_ps.$(OBJEXT) file_psd.$(OBJEXT) \
++	file_psf.$(OBJEXT) file_psp.$(OBJEXT) file_pst.$(OBJEXT) \
++	file_ptb.$(OBJEXT) file_ptf.$(OBJEXT) file_pyc.$(OBJEXT) \
++	file_pzf.$(OBJEXT) file_pzh.$(OBJEXT) file_qbb.$(OBJEXT) \
++	file_qdf.$(OBJEXT) file_qkt.$(OBJEXT) file_qxd.$(OBJEXT) \
++	file_r3d.$(OBJEXT) file_ra.$(OBJEXT) file_raf.$(OBJEXT) \
++	file_rar.$(OBJEXT) file_raw.$(OBJEXT) file_rdc.$(OBJEXT) \
++	file_reg.$(OBJEXT) file_res.$(OBJEXT) file_rfp.$(OBJEXT) \
++	file_riff.$(OBJEXT) file_rm.$(OBJEXT) file_rns.$(OBJEXT) \
++	file_rpm.$(OBJEXT) file_rw2.$(OBJEXT) file_ses.$(OBJEXT) \
++	file_sib.$(OBJEXT) file_sig.$(OBJEXT) file_sit.$(OBJEXT) \
++	file_skd.$(OBJEXT) file_skp.$(OBJEXT) file_sp3.$(OBJEXT) \
++	file_spe.$(OBJEXT) file_spf.$(OBJEXT) file_spss.$(OBJEXT) \
++	file_sql.$(OBJEXT) file_sqm.$(OBJEXT) file_stl.$(OBJEXT) \
++	file_stu.$(OBJEXT) file_swf.$(OBJEXT) file_tar.$(OBJEXT) \
++	file_tax.$(OBJEXT) file_tib.$(OBJEXT) file_tiff.$(OBJEXT) \
++	file_torrent.$(OBJEXT) file_tph.$(OBJEXT) file_ttf.$(OBJEXT) \
++	file_txt.$(OBJEXT) file_tz.$(OBJEXT) file_vault.$(OBJEXT) \
++	file_vdi.$(OBJEXT) file_veg.$(OBJEXT) file_vfb.$(OBJEXT) \
++	file_vmdk.$(OBJEXT) file_wdp.$(OBJEXT) file_win.$(OBJEXT) \
++	file_wks.$(OBJEXT) file_wmf.$(OBJEXT) file_wnk.$(OBJEXT) \
++	file_wpd.$(OBJEXT) file_wtv.$(OBJEXT) file_wv.$(OBJEXT) \
++	file_x3f.$(OBJEXT) file_xcf.$(OBJEXT) file_xfi.$(OBJEXT) \
++	file_xm.$(OBJEXT) file_xsv.$(OBJEXT) file_xpt.$(OBJEXT) \
++	file_xv.$(OBJEXT) file_zip.$(OBJEXT)
+ am__objects_2 =
+ am_fidentify_OBJECTS = fidentify.$(OBJEXT) common.$(OBJEXT) \
+ 	phcfg.$(OBJEXT) setdate.$(OBJEXT) $(am__objects_1) \
+@@ -154,51 +155,52 @@
+ 	file_ace.c file_ahn.c file_aif.c file_all.c file_als.c \
+ 	file_amd.c file_amr.c file_apa.c file_ape.c file_apple.c \
+ 	file_arj.c file_asf.c file_asm.c file_atd.c file_au.c \
+-	file_bac.c file_bim.c file_bkf.c file_bld.c file_bmp.c \
+-	file_bz2.c file_cab.c file_cam.c file_cdt.c file_chm.c \
+-	file_class.c file_cm.c file_compress.c file_cow.c file_crw.c \
+-	file_ctg.c file_cwk.c file_d2s.c file_dat.c file_dbf.c \
+-	file_dbn.c file_dex.c file_dim.c file_dir.c file_djv.c \
+-	file_dmp.c file_doc.c file_dpx.c file_drw.c file_ds2.c \
+-	file_dsc.c file_dss.c file_dta.c file_dump.c file_dv.c \
+-	file_dwg.c file_dxf.c file_e01.c file_edb.c file_ecryptfs.c \
+-	file_elf.c file_emf.c file_evt.c file_exe.c file_exs.c \
+-	file_ext.c file_ext2.c file_fat.c file_fbk.c file_fcp.c \
+-	file_fcs.c file_fdb.c file_fh10.c file_fh5.c file_filevault.c \
+-	file_fits.c file_flac.c file_flp.c file_flv.c file_fob.c \
+-	file_fp5.c file_fp7.c file_freeway.c file_frm.c file_fs.c \
+-	file_gct.c file_gho.c file_gif.c file_gm6.c file_gp5.c \
+-	file_gpg.c file_gz.c file_hds.c file_hr9.c file_http.c \
+-	file_icc.c file_ico.c file_ifo.c file_imb.c file_indd.c \
+-	file_iso.c file_it.c file_itu.c file_jpg.c file_kdb.c \
+-	file_ldf.c file_lnk.c file_logic.c file_lso.c file_lzo.c \
+-	file_m2ts.c file_mat.c file_max.c file_mb.c file_mcd.c \
+-	file_mdb.c file_mdf.c file_mfa.c file_mfg.c file_mid.c \
+-	file_mk5.c file_mkv.c file_mov.c file_mp3.c file_mpg.c \
+-	file_mrw.c file_mus.c file_mxf.c file_myo.c file_mysql.c \
+-	file_nds.c file_njx.c file_nk2.c file_nsf.c file_ogg.c \
+-	file_one.c file_orf.c file_paf.c file_pap.c file_pcap.c \
+-	file_pct.c file_pcx.c file_pdf.c file_pfx.c file_png.c \
+-	file_pnm.c file_prc.c file_prt.c file_ps.c file_psd.c \
+-	file_psf.c file_psp.c file_pst.c file_ptb.c file_ptf.c \
+-	file_pyc.c file_pzf.c file_pzh.c file_qbb.c file_qdf.c \
+-	file_qkt.c file_qxd.c file_r3d.c file_ra.c file_raf.c \
+-	file_rar.c file_raw.c file_rdc.c file_reg.c file_res.c \
+-	file_rfp.c file_riff.c file_rm.c file_rns.c file_rpm.c \
+-	file_rw2.c file_ses.c file_sib.c file_sig.c file_sit.c \
+-	file_skd.c file_skp.c file_sp3.c file_spe.c file_spf.c \
+-	file_spss.c file_sql.c file_sqm.c file_stl.c file_stu.c \
+-	file_swf.c file_tar.c file_tax.c file_tib.c file_tiff.c \
+-	file_torrent.c file_tph.c file_ttf.c file_txt.c file_tz.c \
+-	file_vault.c file_vdi.c file_veg.c file_vfb.c file_vmdk.c \
+-	file_wdp.c file_win.c file_wks.c file_wmf.c file_wnk.c \
+-	file_wpd.c file_wtv.c file_wv.c file_x3f.c file_xcf.c \
+-	file_xfi.c file_xm.c file_xsv.c file_xpt.c file_xv.c \
+-	file_zip.c ext2.h filegen.h file_jpg.h file_sp3.h file_tar.h \
+-	file_tiff.h file_txt.h list.h ole.h pe.h suspend.h autoset.c \
+-	common.c crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c hdwin32.c \
+-	hidden.c hpa_dco.c intrf.c iso.c log.c log_part.c misc.c \
+-	msdos.c parti386.c partgpt.c parthumax.c partmac.c partsun.c \
++	file_bac.c file_bim.c file_bkf.c file_bld.c file_blobdpapi.c \
++	file_bmp.c file_bz2.c file_cab.c file_cam.c file_cdt.c \
++	file_chm.c file_class.c file_cm.c file_compress.c file_cow.c \
++	file_crw.c file_ctg.c file_cwk.c file_d2s.c file_dat.c \
++	file_dbf.c file_dbn.c file_dex.c file_dim.c file_dir.c \
++	file_djv.c file_dmp.c file_doc.c file_dpx.c file_drw.c \
++	file_ds2.c file_dsc.c file_dss.c file_dta.c file_dump.c \
++	file_dv.c file_dwg.c file_dxf.c file_e01.c file_edb.c \
++	file_ecryptfs.c file_elf.c file_emf.c file_evt.c file_exe.c \
++	file_exs.c file_ext.c file_ext2.c file_fat.c file_fbk.c \
++	file_fcp.c file_fcs.c file_fdb.c file_fh10.c file_fh5.c \
++	file_filevault.c file_fits.c file_flac.c file_flp.c file_flv.c \
++	file_fob.c file_fp5.c file_fp7.c file_freeway.c file_frm.c \
++	file_fs.c file_gct.c file_gho.c file_gif.c file_gm6.c \
++	file_gp5.c file_gpg.c file_gz.c file_hds.c file_hr9.c \
++	file_http.c file_icc.c file_ico.c file_ifo.c file_imb.c \
++	file_indd.c file_iso.c file_it.c file_itu.c file_jpg.c \
++	file_kdb.c file_ldf.c file_lnk.c file_logic.c file_lso.c \
++	file_lzo.c file_m2ts.c file_mat.c file_max.c \
++	file_masterkeydpapi.c file_mb.c file_mcd.c file_mdb.c \
++	file_mdf.c file_mfa.c file_mfg.c file_mid.c file_mk5.c \
++	file_mkv.c file_mov.c file_mp3.c file_mpg.c file_mrw.c \
++	file_mus.c file_mxf.c file_myo.c file_mysql.c file_nds.c \
++	file_njx.c file_nk2.c file_nsf.c file_ogg.c file_one.c \
++	file_orf.c file_paf.c file_pap.c file_pcap.c file_pct.c \
++	file_pcx.c file_pdf.c file_pfx.c file_png.c file_pnm.c \
++	file_prc.c file_prt.c file_ps.c file_psd.c file_psf.c \
++	file_psp.c file_pst.c file_ptb.c file_ptf.c file_pyc.c \
++	file_pzf.c file_pzh.c file_qbb.c file_qdf.c file_qkt.c \
++	file_qxd.c file_r3d.c file_ra.c file_raf.c file_rar.c \
++	file_raw.c file_rdc.c file_reg.c file_res.c file_rfp.c \
++	file_riff.c file_rm.c file_rns.c file_rpm.c file_rw2.c \
++	file_ses.c file_sib.c file_sig.c file_sit.c file_skd.c \
++	file_skp.c file_sp3.c file_spe.c file_spf.c file_spss.c \
++	file_sql.c file_sqm.c file_stl.c file_stu.c file_swf.c \
++	file_tar.c file_tax.c file_tib.c file_tiff.c file_torrent.c \
++	file_tph.c file_ttf.c file_txt.c file_tz.c file_vault.c \
++	file_vdi.c file_veg.c file_vfb.c file_vmdk.c file_wdp.c \
++	file_win.c file_wks.c file_wmf.c file_wnk.c file_wpd.c \
++	file_wtv.c file_wv.c file_x3f.c file_xcf.c file_xfi.c \
++	file_xm.c file_xsv.c file_xpt.c file_xv.c file_zip.c ext2.h \
++	filegen.h file_jpg.h file_sp3.h file_tar.h file_tiff.h \
++	file_txt.h list.h ole.h pe.h suspend.h autoset.c common.c \
++	crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c hdwin32.c hidden.c \
++	hpa_dco.c intrf.c iso.c log.c log_part.c misc.c msdos.c \
++	parti386.c partgpt.c parthumax.c partmac.c partsun.c \
+ 	partnone.c partxbox.c io_redir.c ntfs_io.c ntfs_utl.c \
+ 	partauto.c sudo.c unicode.c win32.c alignio.h autoset.h \
+ 	common.h crc.h ewf.h fnctdsk.h hdaccess.h hdwin32.h hidden.h \
+@@ -273,51 +275,52 @@
+ 	file_ace.c file_ahn.c file_aif.c file_all.c file_als.c \
+ 	file_amd.c file_amr.c file_apa.c file_ape.c file_apple.c \
+ 	file_arj.c file_asf.c file_asm.c file_atd.c file_au.c \
+-	file_bac.c file_bim.c file_bkf.c file_bld.c file_bmp.c \
+-	file_bz2.c file_cab.c file_cam.c file_cdt.c file_chm.c \
+-	file_class.c file_cm.c file_compress.c file_cow.c file_crw.c \
+-	file_ctg.c file_cwk.c file_d2s.c file_dat.c file_dbf.c \
+-	file_dbn.c file_dex.c file_dim.c file_dir.c file_djv.c \
+-	file_dmp.c file_doc.c file_dpx.c file_drw.c file_ds2.c \
+-	file_dsc.c file_dss.c file_dta.c file_dump.c file_dv.c \
+-	file_dwg.c file_dxf.c file_e01.c file_edb.c file_ecryptfs.c \
+-	file_elf.c file_emf.c file_evt.c file_exe.c file_exs.c \
+-	file_ext.c file_ext2.c file_fat.c file_fbk.c file_fcp.c \
+-	file_fcs.c file_fdb.c file_fh10.c file_fh5.c file_filevault.c \
+-	file_fits.c file_flac.c file_flp.c file_flv.c file_fob.c \
+-	file_fp5.c file_fp7.c file_freeway.c file_frm.c file_fs.c \
+-	file_gct.c file_gho.c file_gif.c file_gm6.c file_gp5.c \
+-	file_gpg.c file_gz.c file_hds.c file_hr9.c file_http.c \
+-	file_icc.c file_ico.c file_ifo.c file_imb.c file_indd.c \
+-	file_iso.c file_it.c file_itu.c file_jpg.c file_kdb.c \
+-	file_ldf.c file_lnk.c file_logic.c file_lso.c file_lzo.c \
+-	file_m2ts.c file_mat.c file_max.c file_mb.c file_mcd.c \
+-	file_mdb.c file_mdf.c file_mfa.c file_mfg.c file_mid.c \
+-	file_mk5.c file_mkv.c file_mov.c file_mp3.c file_mpg.c \
+-	file_mrw.c file_mus.c file_mxf.c file_myo.c file_mysql.c \
+-	file_nds.c file_njx.c file_nk2.c file_nsf.c file_ogg.c \
+-	file_one.c file_orf.c file_paf.c file_pap.c file_pcap.c \
+-	file_pct.c file_pcx.c file_pdf.c file_pfx.c file_png.c \
+-	file_pnm.c file_prc.c file_prt.c file_ps.c file_psd.c \
+-	file_psf.c file_psp.c file_pst.c file_ptb.c file_ptf.c \
+-	file_pyc.c file_pzf.c file_pzh.c file_qbb.c file_qdf.c \
+-	file_qkt.c file_qxd.c file_r3d.c file_ra.c file_raf.c \
+-	file_rar.c file_raw.c file_rdc.c file_reg.c file_res.c \
+-	file_rfp.c file_riff.c file_rm.c file_rns.c file_rpm.c \
+-	file_rw2.c file_ses.c file_sib.c file_sig.c file_sit.c \
+-	file_skd.c file_skp.c file_sp3.c file_spe.c file_spf.c \
+-	file_spss.c file_sql.c file_sqm.c file_stl.c file_stu.c \
+-	file_swf.c file_tar.c file_tax.c file_tib.c file_tiff.c \
+-	file_torrent.c file_tph.c file_ttf.c file_txt.c file_tz.c \
+-	file_vault.c file_vdi.c file_veg.c file_vfb.c file_vmdk.c \
+-	file_wdp.c file_win.c file_wks.c file_wmf.c file_wnk.c \
+-	file_wpd.c file_wtv.c file_wv.c file_x3f.c file_xcf.c \
+-	file_xfi.c file_xm.c file_xsv.c file_xpt.c file_xv.c \
+-	file_zip.c ext2.h filegen.h file_jpg.h file_sp3.h file_tar.h \
+-	file_tiff.h file_txt.h list.h ole.h pe.h suspend.h autoset.c \
+-	common.c crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c hdwin32.c \
+-	hidden.c hpa_dco.c intrf.c iso.c log.c log_part.c misc.c \
+-	msdos.c parti386.c partgpt.c parthumax.c partmac.c partsun.c \
++	file_bac.c file_bim.c file_bkf.c file_bld.c file_blobdpapi.c \
++	file_bmp.c file_bz2.c file_cab.c file_cam.c file_cdt.c \
++	file_chm.c file_class.c file_cm.c file_compress.c file_cow.c \
++	file_crw.c file_ctg.c file_cwk.c file_d2s.c file_dat.c \
++	file_dbf.c file_dbn.c file_dex.c file_dim.c file_dir.c \
++	file_djv.c file_dmp.c file_doc.c file_dpx.c file_drw.c \
++	file_ds2.c file_dsc.c file_dss.c file_dta.c file_dump.c \
++	file_dv.c file_dwg.c file_dxf.c file_e01.c file_edb.c \
++	file_ecryptfs.c file_elf.c file_emf.c file_evt.c file_exe.c \
++	file_exs.c file_ext.c file_ext2.c file_fat.c file_fbk.c \
++	file_fcp.c file_fcs.c file_fdb.c file_fh10.c file_fh5.c \
++	file_filevault.c file_fits.c file_flac.c file_flp.c file_flv.c \
++	file_fob.c file_fp5.c file_fp7.c file_freeway.c file_frm.c \
++	file_fs.c file_gct.c file_gho.c file_gif.c file_gm6.c \
++	file_gp5.c file_gpg.c file_gz.c file_hds.c file_hr9.c \
++	file_http.c file_icc.c file_ico.c file_ifo.c file_imb.c \
++	file_indd.c file_iso.c file_it.c file_itu.c file_jpg.c \
++	file_kdb.c file_ldf.c file_lnk.c file_logic.c file_lso.c \
++	file_lzo.c file_m2ts.c file_mat.c file_max.c \
++	file_masterkeydpapi.c file_mb.c file_mcd.c file_mdb.c \
++	file_mdf.c file_mfa.c file_mfg.c file_mid.c file_mk5.c \
++	file_mkv.c file_mov.c file_mp3.c file_mpg.c file_mrw.c \
++	file_mus.c file_mxf.c file_myo.c file_mysql.c file_nds.c \
++	file_njx.c file_nk2.c file_nsf.c file_ogg.c file_one.c \
++	file_orf.c file_paf.c file_pap.c file_pcap.c file_pct.c \
++	file_pcx.c file_pdf.c file_pfx.c file_png.c file_pnm.c \
++	file_prc.c file_prt.c file_ps.c file_psd.c file_psf.c \
++	file_psp.c file_pst.c file_ptb.c file_ptf.c file_pyc.c \
++	file_pzf.c file_pzh.c file_qbb.c file_qdf.c file_qkt.c \
++	file_qxd.c file_r3d.c file_ra.c file_raf.c file_rar.c \
++	file_raw.c file_rdc.c file_reg.c file_res.c file_rfp.c \
++	file_riff.c file_rm.c file_rns.c file_rpm.c file_rw2.c \
++	file_ses.c file_sib.c file_sig.c file_sit.c file_skd.c \
++	file_skp.c file_sp3.c file_spe.c file_spf.c file_spss.c \
++	file_sql.c file_sqm.c file_stl.c file_stu.c file_swf.c \
++	file_tar.c file_tax.c file_tib.c file_tiff.c file_torrent.c \
++	file_tph.c file_ttf.c file_txt.c file_tz.c file_vault.c \
++	file_vdi.c file_veg.c file_vfb.c file_vmdk.c file_wdp.c \
++	file_win.c file_wks.c file_wmf.c file_wnk.c file_wpd.c \
++	file_wtv.c file_wv.c file_x3f.c file_xcf.c file_xfi.c \
++	file_xm.c file_xsv.c file_xpt.c file_xv.c file_zip.c ext2.h \
++	filegen.h file_jpg.h file_sp3.h file_tar.h file_tiff.h \
++	file_txt.h list.h ole.h pe.h suspend.h autoset.c common.c \
++	crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c hdwin32.c hidden.c \
++	hpa_dco.c intrf.c iso.c log.c log_part.c misc.c msdos.c \
++	parti386.c partgpt.c parthumax.c partmac.c partsun.c \
+ 	partnone.c partxbox.c io_redir.c ntfs_io.c ntfs_utl.c \
+ 	partauto.c sudo.c unicode.c win32.c alignio.h autoset.h \
+ 	common.h crc.h ewf.h fnctdsk.h hdaccess.h hdwin32.h hidden.h \
+@@ -352,64 +355,65 @@
+ 	file_als.c file_amd.c file_amr.c file_apa.c file_ape.c \
+ 	file_apple.c file_arj.c file_asf.c file_asm.c file_atd.c \
+ 	file_au.c file_bac.c file_bim.c file_bkf.c file_bld.c \
+-	file_bmp.c file_bz2.c file_cab.c file_cam.c file_cdt.c \
+-	file_chm.c file_class.c file_cm.c file_compress.c file_cow.c \
+-	file_crw.c file_ctg.c file_cwk.c file_d2s.c file_dat.c \
+-	file_dbf.c file_dbn.c file_dex.c file_dim.c file_dir.c \
+-	file_djv.c file_dmp.c file_doc.c file_dpx.c file_drw.c \
+-	file_ds2.c file_dsc.c file_dss.c file_dta.c file_dump.c \
+-	file_dv.c file_dwg.c file_dxf.c file_e01.c file_edb.c \
+-	file_ecryptfs.c file_elf.c file_emf.c file_evt.c file_exe.c \
+-	file_exs.c file_ext.c file_ext2.c file_fat.c file_fbk.c \
+-	file_fcp.c file_fcs.c file_fdb.c file_fh10.c file_fh5.c \
+-	file_filevault.c file_fits.c file_flac.c file_flp.c file_flv.c \
+-	file_fob.c file_fp5.c file_fp7.c file_freeway.c file_frm.c \
+-	file_fs.c file_gct.c file_gho.c file_gif.c file_gm6.c \
+-	file_gp5.c file_gpg.c file_gz.c file_hds.c file_hr9.c \
+-	file_http.c file_icc.c file_ico.c file_ifo.c file_imb.c \
+-	file_indd.c file_iso.c file_it.c file_itu.c file_jpg.c \
+-	file_kdb.c file_ldf.c file_lnk.c file_logic.c file_lso.c \
+-	file_lzo.c file_m2ts.c file_mat.c file_max.c file_mb.c \
+-	file_mcd.c file_mdb.c file_mdf.c file_mfa.c file_mfg.c \
+-	file_mid.c file_mk5.c file_mkv.c file_mov.c file_mp3.c \
+-	file_mpg.c file_mrw.c file_mus.c file_mxf.c file_myo.c \
+-	file_mysql.c file_nds.c file_njx.c file_nk2.c file_nsf.c \
+-	file_ogg.c file_one.c file_orf.c file_paf.c file_pap.c \
+-	file_pcap.c file_pct.c file_pcx.c file_pdf.c file_pfx.c \
+-	file_png.c file_pnm.c file_prc.c file_prt.c file_ps.c \
+-	file_psd.c file_psf.c file_psp.c file_pst.c file_ptb.c \
+-	file_ptf.c file_pyc.c file_pzf.c file_pzh.c file_qbb.c \
+-	file_qdf.c file_qkt.c file_qxd.c file_r3d.c file_ra.c \
+-	file_raf.c file_rar.c file_raw.c file_rdc.c file_reg.c \
+-	file_res.c file_rfp.c file_riff.c file_rm.c file_rns.c \
+-	file_rpm.c file_rw2.c file_ses.c file_sib.c file_sig.c \
+-	file_sit.c file_skd.c file_skp.c file_sp3.c file_spe.c \
+-	file_spf.c file_spss.c file_sql.c file_sqm.c file_stl.c \
+-	file_stu.c file_swf.c file_tar.c file_tax.c file_tib.c \
+-	file_tiff.c file_torrent.c file_tph.c file_ttf.c file_txt.c \
+-	file_tz.c file_vault.c file_vdi.c file_veg.c file_vfb.c \
+-	file_vmdk.c file_wdp.c file_win.c file_wks.c file_wmf.c \
+-	file_wnk.c file_wpd.c file_wtv.c file_wv.c file_x3f.c \
+-	file_xcf.c file_xfi.c file_xm.c file_xsv.c file_xpt.c \
+-	file_xv.c file_zip.c ext2.h filegen.h file_jpg.h file_sp3.h \
+-	file_tar.h file_tiff.h file_txt.h list.h ole.h pe.h suspend.h \
+-	autoset.c common.c crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c \
+-	hdwin32.c hidden.c hpa_dco.c intrf.c iso.c log.c log_part.c \
+-	misc.c msdos.c parti386.c partgpt.c parthumax.c partmac.c \
+-	partsun.c partnone.c partxbox.c io_redir.c ntfs_io.c \
+-	ntfs_utl.c partauto.c sudo.c unicode.c win32.c alignio.h \
+-	autoset.h common.h crc.h ewf.h fnctdsk.h hdaccess.h hdwin32.h \
+-	hidden.h guid_cmp.h guid_cpy.h hdcache.h hpa_dco.h intrf.h \
+-	iso.h iso9660.h lang.h log.h log_part.h misc.h types.h \
+-	io_redir.h msdos.h ntfs_utl.h parti386.h partgpt.h parthumax.h \
+-	partmac.h partsun.h partxbox.h partauto.h sudo.h unicode.h \
+-	win32.h partgptro.c analyse.c bfs.c bsd.c btrfs.c cramfs.c \
+-	exfat.c fat.c fatx.c ext2.c jfs.c hfs.c hfsp.c hpfs.c luks.c \
+-	lvm.c md.c netware.c ntfs.c rfs.c savehdr.c sun.c swap.c \
+-	sysv.c ufs.c xfs.c zfs.c analyse.h bfs.h bsd.h btrfs.h \
+-	cramfs.h exfat.h fat.h fatx.h jfs_superblock.h jfs.h hfs.h \
+-	hfsp.h hpfs.h luks.h lvm.h md.h netware.h ntfs.h rfs.h \
+-	savehdr.h sun.h swap.h sysv.h ufs.h xfs.h zfs.h icon_ph.rc \
++	file_blobdpapi.c file_bmp.c file_bz2.c file_cab.c file_cam.c \
++	file_cdt.c file_chm.c file_class.c file_cm.c file_compress.c \
++	file_cow.c file_crw.c file_ctg.c file_cwk.c file_d2s.c \
++	file_dat.c file_dbf.c file_dbn.c file_dex.c file_dim.c \
++	file_dir.c file_djv.c file_dmp.c file_doc.c file_dpx.c \
++	file_drw.c file_ds2.c file_dsc.c file_dss.c file_dta.c \
++	file_dump.c file_dv.c file_dwg.c file_dxf.c file_e01.c \
++	file_edb.c file_ecryptfs.c file_elf.c file_emf.c file_evt.c \
++	file_exe.c file_exs.c file_ext.c file_ext2.c file_fat.c \
++	file_fbk.c file_fcp.c file_fcs.c file_fdb.c file_fh10.c \
++	file_fh5.c file_filevault.c file_fits.c file_flac.c file_flp.c \
++	file_flv.c file_fob.c file_fp5.c file_fp7.c file_freeway.c \
++	file_frm.c file_fs.c file_gct.c file_gho.c file_gif.c \
++	file_gm6.c file_gp5.c file_gpg.c file_gz.c file_hds.c \
++	file_hr9.c file_http.c file_icc.c file_ico.c file_ifo.c \
++	file_imb.c file_indd.c file_iso.c file_it.c file_itu.c \
++	file_jpg.c file_kdb.c file_ldf.c file_lnk.c file_logic.c \
++	file_lso.c file_lzo.c file_m2ts.c file_mat.c file_max.c \
++	file_masterkeydpapi.c file_mb.c file_mcd.c file_mdb.c \
++	file_mdf.c file_mfa.c file_mfg.c file_mid.c file_mk5.c \
++	file_mkv.c file_mov.c file_mp3.c file_mpg.c file_mrw.c \
++	file_mus.c file_mxf.c file_myo.c file_mysql.c file_nds.c \
++	file_njx.c file_nk2.c file_nsf.c file_ogg.c file_one.c \
++	file_orf.c file_paf.c file_pap.c file_pcap.c file_pct.c \
++	file_pcx.c file_pdf.c file_pfx.c file_png.c file_pnm.c \
++	file_prc.c file_prt.c file_ps.c file_psd.c file_psf.c \
++	file_psp.c file_pst.c file_ptb.c file_ptf.c file_pyc.c \
++	file_pzf.c file_pzh.c file_qbb.c file_qdf.c file_qkt.c \
++	file_qxd.c file_r3d.c file_ra.c file_raf.c file_rar.c \
++	file_raw.c file_rdc.c file_reg.c file_res.c file_rfp.c \
++	file_riff.c file_rm.c file_rns.c file_rpm.c file_rw2.c \
++	file_ses.c file_sib.c file_sig.c file_sit.c file_skd.c \
++	file_skp.c file_sp3.c file_spe.c file_spf.c file_spss.c \
++	file_sql.c file_sqm.c file_stl.c file_stu.c file_swf.c \
++	file_tar.c file_tax.c file_tib.c file_tiff.c file_torrent.c \
++	file_tph.c file_ttf.c file_txt.c file_tz.c file_vault.c \
++	file_vdi.c file_veg.c file_vfb.c file_vmdk.c file_wdp.c \
++	file_win.c file_wks.c file_wmf.c file_wnk.c file_wpd.c \
++	file_wtv.c file_wv.c file_x3f.c file_xcf.c file_xfi.c \
++	file_xm.c file_xsv.c file_xpt.c file_xv.c file_zip.c ext2.h \
++	filegen.h file_jpg.h file_sp3.h file_tar.h file_tiff.h \
++	file_txt.h list.h ole.h pe.h suspend.h autoset.c common.c \
++	crc.c ewf.c fnctdsk.c hdaccess.c hdcache.c hdwin32.c hidden.c \
++	hpa_dco.c intrf.c iso.c log.c log_part.c misc.c msdos.c \
++	parti386.c partgpt.c parthumax.c partmac.c partsun.c \
++	partnone.c partxbox.c io_redir.c ntfs_io.c ntfs_utl.c \
++	partauto.c sudo.c unicode.c win32.c alignio.h autoset.h \
++	common.h crc.h ewf.h fnctdsk.h hdaccess.h hdwin32.h hidden.h \
++	guid_cmp.h guid_cpy.h hdcache.h hpa_dco.h intrf.h iso.h \
++	iso9660.h lang.h log.h log_part.h misc.h types.h io_redir.h \
++	msdos.h ntfs_utl.h parti386.h partgpt.h parthumax.h partmac.h \
++	partsun.h partxbox.h partauto.h sudo.h unicode.h win32.h \
++	partgptro.c analyse.c bfs.c bsd.c btrfs.c cramfs.c exfat.c \
++	fat.c fatx.c ext2.c jfs.c hfs.c hfsp.c hpfs.c luks.c lvm.c \
++	md.c netware.c ntfs.c rfs.c savehdr.c sun.c swap.c sysv.c \
++	ufs.c xfs.c zfs.c analyse.h bfs.h bsd.h btrfs.h cramfs.h \
++	exfat.h fat.h fatx.h jfs_superblock.h jfs.h hfs.h hfsp.h \
++	hpfs.h luks.h lvm.h md.h netware.h ntfs.h rfs.h savehdr.h \
++	sun.h swap.h sysv.h ufs.h xfs.h zfs.h icon_ph.rc \
+ 	../ico/photorec.ico suspend_no.c
+ am_qphotorec_OBJECTS = qmainrec.$(OBJEXT) qphotorec.$(OBJEXT) \
+ 	chgtype.$(OBJEXT) $(am__objects_3) $(am__objects_2) \
+@@ -659,7 +663,8 @@
+ 			  file_bim.c \
+ 			  file_bkf.c \
+ 			  file_bld.c \
+-			  file_bmp.c \
++			  file_blobdpapi.c \
++                          file_bmp.c \
+ 			  file_bz2.c \
+ 			  file_cab.c \
+ 			  file_cam.c \
+@@ -748,6 +753,7 @@
+ 			  file_m2ts.c \
+ 			  file_mat.c \
+ 			  file_max.c \
++                          file_masterkeydpapi.c\
+ 			  file_mb.c \
+ 			  file_mcd.c \
+ 			  file_mdb.c \
+@@ -1044,6 +1050,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_bim.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_bkf.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_bld.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_blobdpapi.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_bmp.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_bz2.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_cab.Po@am__quote@
+@@ -1133,6 +1140,7 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_lso.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_lzo.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_m2ts.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_masterkeydpapi.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_mat.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_max.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/file_mb.Po@am__quote@
+Seulement dans ../Workspace/OWAD/testdisk-6.12/src: photorec.log
