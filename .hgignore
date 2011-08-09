@@ -1,9 +1,8 @@
-
-syntax:glob
-
-*.rej
-*.orig
-*.pyc
-*~
-.git/*
-.gitignore
+\.rej$
+\.orig$
+\.pyc$
+~$
+\.git/
+\.gitignore$
+\.svn/
+build/
