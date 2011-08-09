@@ -91,5 +91,5 @@ class Regedit:
         f.close()
         return self.lsa_secrets
 
-# vim:ts=4:expandtabl:sw=4
+# vim:ts=4:expandtab:sw=4
 
