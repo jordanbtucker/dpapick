@@ -25,6 +25,7 @@ from eater import Eater, DataStruct
 
 
 class RPC_SID(DataStruct):
+    """Represents a RPC_SID structure. See MSDN for documentation"""
     def parse(self, data):
         self.version = data.eat("B")
         n = data.eat("B")
@@ -43,6 +44,14 @@ class RPC_SID(DataStruct):
         subAuthorities       = %r""" % (self, self.version, self.idAuth, self.subAuth)
 
 class CredSystem(DataStruct):
+    """This represents the DPAPI_SYSTEM token which is stored as an LSA
+        secret.
+
+        Sets 2 properties:
+            self.machine
+            self.user
+
+    """
     def __init__(self, raw=None):
         self.machine = None
         self.user = None
@@ -88,17 +97,26 @@ class CredhistEntry(DataStruct):
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
     def decryptWithKey(self, enckey):
+        """Decrypts this credhist entry using the given key."""
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted, 
                                       enckey, self.iv, self.rounds)
         self.pwdhash = cleartxt[:self.dataLen]
         self.hmac = cleartxt[self.dataLen:self.dataLen+self.hmacLen]
-        ##TODO: Compute & Verify HMAC
+        ##TODO: Compute & Verify HMAC. Dunno if it's possible...
 
     def decryptWithHash(self, pwdhash):
+        """Decrypts this credhist entry with the given user's password hash.
+        Simply computes the encryption with then calls self.decryptWithKey()
+
+        """
         self.decryptWithKey(crypto.derivePwdHash(pwdhash, str(self.userSID),
             self.hashAlgo))
 
     def decryptWithPassword(self, password):
+        """Decrypts this credhist entry with the given user's password.
+        Simply computes the password hash then calls self.decryptWithHash()
+
+        """
         return self.decryptWithHash(hashlib.sha1(password.encode("UTF-16LE")).digest())
 
     def jtr_shadow(self):
@@ -125,6 +143,14 @@ class CredhistEntry(DataStruct):
 
 
 class CredHistFile(DataStruct):
+    """Represents a CREDHIST file.
+    Be aware that currently, it is not possible to check whether the decryption
+    succeeded or not. To circumvent that and optimize a little bit crypto
+    operations, once a credhist entry successfully decrypts a masterkey, the
+    whole CredHistFile is flagged as valid. Then, no further decryption occurs.
+    
+    """
+
     def __init__(self, raw=None):
         self.entries_list = []
         self.entries = {}
@@ -143,14 +169,20 @@ class CredHistFile(DataStruct):
         self.curr_guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
     def addEntry(self, blob):
+        """Creates a CredhistEntry object with blob then adds it to the store"""
         x = CredhistEntry(blob)
         self.entries[x.guid] = x
         self.entries_list.append(x)
  
     def validate(self):
+        """Simply flags a file as successfully decrypted. See the class
+        documentation for information.
+        
+        """
         self.valid = True
 
     def decryptWithHash(self, h):
+        """Try to decrypt each entry with the given hash"""
         if self.valid == True:
             return
         curhash = h
@@ -159,9 +191,22 @@ class CredHistFile(DataStruct):
             curhash = entry.pwdhash
 
     def decryptWithPassword(self, pwd):
+        """Try to decrypt each entry with the given password.
+        This function simply computes the SHA-1 hash with the password, then
+        calls self.decryptWithHash()
+
+        """
         return self.decryptWithHash(hashlib.sha1(pwd.encode("UTF-16LE")).digest())
 
     def jtr_shadow(self, validonly=False):
+        """Returns a string that can be passed to John the Ripper to crack the
+            CREDHIST entries. Requires to use a recent jumbo version of JtR plus
+            the configuration snipplet in the "3rd party" directory of DPAPIck.
+
+            If validonly is set to True, will only extract CREDHIST entries
+            that are known to have sucessfully decrypted a masterkey.
+
+        """
         if validonly and not self.valid:
             return ""
         s = []

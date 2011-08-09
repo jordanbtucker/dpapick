@@ -23,8 +23,15 @@ from DPAPI.Core import blob
 ## http://www.securityxploded.com/networkpasswordsecrets.php
 
 class CredentialStore(DPAPIProbe):
+    """This class represents a Credential Store file.
+        It parses the file to extract the header, then builds a CredArray
+        object that will contain Credential objects that are the actual blob
+
+    """
 
     class Credential(DPAPIProbe):
+        """Represents an entry in the credential store."""
+
         _entropy = {
                 1: "abe2869f-9b47-4cd9-a358-c22904dba7f7\0",
                 4: "82BD0E67-9FEA-4748-8672-D5EFE5B779B0\0"
@@ -116,6 +123,10 @@ class CredentialStore(DPAPIProbe):
             return "\n".join(s)
 
     class CredArray(DPAPIProbe):
+        """Represents all the credential entries that are contained in the
+            credential store file.
+
+        """
         def parse(self, data):
             self.revision = data.eat("L")
             self.totallen = data.eat("L")
@@ -130,6 +141,13 @@ class CredentialStore(DPAPIProbe):
                 c.postprocess(**k)
 
         def try_decrypt_with_hash(self, h, mkp, sid, **k):
+            """Returns True if all the entries has been successfully
+                decrypted.
+
+                This may change in future versions as in forensics usage
+                we just want to retreive as many credentials as we can.
+
+            """
             r = True
             for c in self.creds:
                 r &= c.try_decrypt_with_hash(h, mkp, sid, **k)

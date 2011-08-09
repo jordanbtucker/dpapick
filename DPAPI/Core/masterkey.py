@@ -26,6 +26,8 @@ from DPAPI.Core import credhist
 
 
 class MasterKey(DataStruct):
+    """This class represents a MasterKey block contained in a MasterKeyFile"""
+
     def __init__(self, raw=None):
         self.decrypted = False
         self.key = None
@@ -43,12 +45,28 @@ class MasterKey(DataStruct):
         self.ciphertext = data.remain()
 
     def decryptWithHash(self, userSID, pwdhash):
+        """Decrypts the masterkey with the given user's hash and SID.
+        Simply computes the corresponding key then calls self.decryptWithKey()
+
+        """
         self.decryptWithKey(crypto.derivePwdHash(pwdhash, userSID, self.hashAlgo))
 
     def decryptWithPassword(self, userSID, pwd):
+        """Decrypts the masterkey with the given user's password and SID.
+        Simply computes the corresponding key, then calls self.decryptWithKey()
+
+        """
         self.decryptWithKey(crypto.derivePassword(pwd, userSID, self.hashAlgo))
 
     def decryptWithKey(self, pwdhash):
+        """Decrypts the masterkey with the given encryption key. This function
+        also extracts the HMAC part of the decrypted stuff and compare it with
+        the computed one.
+
+        Notes that once sucessfully decrypted, the masterkey will not be
+        decrypted anymore; this function will simply return.
+
+        """
         if self.decrypted:
             return
         ## Compute encryption key
@@ -78,6 +96,8 @@ class MasterKey(DataStruct):
 
 
 class CredHist(DataStruct):
+    """This class represents a Credhist block contained in the MasterKeyFile"""
+
     def parse(self, data):
         self.magic = data.eat("L")
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
@@ -88,6 +108,12 @@ class CredHist(DataStruct):
         return "\n".join(s)
 
 class DomainKey(DataStruct):
+    """This class represents a DomainKey block contained in the MasterKeyFile.
+
+    Currently does nothing more than parsing. Work on Active Directory stuff is
+    still on progress.
+
+    """
     def parse(self, data):
         self.version = data.eat("L")
         self.secretLen = data.eat("L")
@@ -95,6 +121,7 @@ class DomainKey(DataStruct):
         self.guidKey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B") #data.eat("16s")
         self.encryptedSecret = data.eat("%us" % self.secretLen)
         self.accessCheck = data.eat("%us" % self.accesscheckLen)
+
     def __repr__(self):
         s = ["DomainKey block"]
         s.append("        version\t= %x" % self.version)
@@ -104,6 +131,8 @@ class DomainKey(DataStruct):
         return "\n".join(s)
 
 class MasterKeyFile(DataStruct):
+    """This class represents a masterkey file."""
+
     def __init__(self, raw=None):
         self.masterkey = None
         self.backupkey = None
@@ -137,6 +166,7 @@ class MasterKeyFile(DataStruct):
             self.domainkey.parse(data.eat_sub(self.domainkeyLen))
 
     def decryptWithHash(self, userSID, h):
+        """See MasterKey.decryptWithHash()"""
         if not self.masterkey.decrypted:
             self.masterkey.decryptWithHash(userSID, h)
         if not self.backupkey.decrypted:
@@ -144,9 +174,11 @@ class MasterKeyFile(DataStruct):
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
 
     def decryptWithPassword(self, userSID, pwd):
+        """See MasterKey.decryptWithPassword()"""
         self.decryptWithHash(userSID, hashlib.sha1(pwd.encode('UTF-16LE')).digest())
 
     def decryptWithKey(self, pwdhash):
+        """See MasterKey.decryptWithKey()"""
         if not self.masterkey.decrypted:
             self.masterkey.decryptWithKey(pwdhash)
         if not self.backupkey.decrypted:
@@ -154,6 +186,10 @@ class MasterKeyFile(DataStruct):
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
     
     def get_key(self):
+        """Returns the first decrypted block between Masterkey and BackupKey.
+        If none has been decrypted, returns the Masterkey block.
+
+        """
         if self.masterkey.decrypted:
             return self.masterkey.key
         elif self.backupkey.decrypted:
@@ -181,30 +217,69 @@ class MasterKeyFile(DataStruct):
 
 
 class MasterKeyPool:
+    """This class is hte pivot for using DPAPIck. It manages all the DPAPI
+    structures and contains all the decryption intelligence.
+
+    """
+
     def __init__(self):
         self.keys = defaultdict(lambda: [])
         self.creds = {}
         self.system = None
 
     def addMasterKey(self, mkey):
+        """Add a MasterKeyFile is the pool.
+
+        mkey is a string representing the content of the file to add.
+
+        """
         mkf = MasterKeyFile(mkey)
         self.keys[mkf.guid].append(mkf)
 
     def getMasterKeys(self, guid):
+        """Returns an array of Masterkeys corresponding the the given GUID.
+
+        guid is a string.
+
+        """
         return self.keys.get(guid,[])
 
     def addSystemCredential(self, blob):
+        """Adds DPAPI_SYSTEM token to the pool.
+
+        blob is a string representing the LSA secret token
+
+        """
         self.system = credhist.CredSystem(blob)
 
     def addCredhist(self, sid, cred):
+        """Internal use. Adds a CredHistFile to the pool.
+
+        sid is a string representing the user's SID
+        cred is CredHistFile object.
+
+        """
         self.creds[sid] = cred
 
     def addCredhistFile(self, sid, credfile):
+        """Adds a Credhist file to the pool.
+
+        sid is a string representing the user's SID
+        credfile is the full path to the CREDHIST file to add.
+
+        """
         f = open(credfile)
         self.addCredhist(sid, credhist.CredHistFile(f.read()))
         f.close()
 
     def loadDirectory(self, directory):
+        """Adds every masterkey contained in the given directory to the pool.
+        If a file is not a valid Masterkey file, this function simply goes to
+        the next file without complaining.
+
+        directory is a string representing the directory path to add.
+
+        """
         for k in os.listdir(directory):
             if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
                 try:
@@ -215,6 +290,17 @@ class MasterKeyPool:
                     pass
 
     def try_credential(self, userSID, password):
+        """This function tries to decrypt every masterkey contained in the pool
+        that has not been successfully decrypted yet with the given password and
+        SID.
+
+        userSID is a string representing the user's SID
+        password is a string representing the user's password.
+
+        Returns the number of masterkey that has been successfully decrypted
+        with those credentials.
+
+        """
         n = 0
         for mk in self.keys.values():
             if not mk.decrypted:
