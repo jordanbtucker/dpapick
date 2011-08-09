@@ -21,6 +21,15 @@ from DPAPI.probe import DPAPIProbe
 from DPAPI.Core import blob
 
 class GTalkAccount(DPAPIProbe):
+    """Probe to decrypt Google Talk saved credentials.
+
+        They are stored in the user account registry, aka
+        HKCU\\Software\\Google\\Google Talk\\Accounts
+
+        Each subkey contains a "pw" value that is the obfuscated DPAPI blob
+        that should be given to the constructor.
+
+    """
 
     def parse(self, data):
         self.login = None

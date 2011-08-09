@@ -25,6 +25,7 @@ from M2Crypto import *
 
 
 class CryptoAlgo(object):
+    """This class is used to wrap Microsoft algorithm IDs with M2Crypto"""
     class _Algo:
         def __init__(self, data):
             self.data=data
@@ -79,6 +80,7 @@ CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
 def bitcount_B(x):
+    """Internal use. Returns number of 1s in the binary form of the byte x"""
     x = ((x&0xaa)>>1) + (x&0x55)
     x = ((x&0xcc)>>2) + (x&0x33)
     x = ((x&0xf0)>>4) + (x&0x0f)
@@ -86,6 +88,10 @@ def bitcount_B(x):
 
 
 def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPassword=""):
+    """Computes the decryption key for DPAPI blob, given the masterkey and
+    optionnal information.
+
+    """
     if len(masterkey) > 63:
         dg = hashlib.new(hashAlgoName)
         dg.update(masterkey)
@@ -110,6 +116,7 @@ def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPas
     return digest.digest()
 
 def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
+    """Internal use. Mimics the correponding native Microsoft function"""
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
         h = _dg(h).digest()
@@ -134,7 +141,56 @@ def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
 
     return k
 
+def decrypt_lsa_key(lsakey, syskey):
+    """This function decrypts LSA key using the syskey"""
+    dg = hashlib.md5()
+    dg.update(syskey)
+    for i in xrange(1000):
+        dg.update(lsakey[60:76])
+    arcfour = RC4.RC4(dg.digest())
+    deskey = arcfour.update(lsakey[12:60]) + arcfour.final()
+    return deskey[0x10:0x20]
+
+def SystemFunction005(secret, key):
+    """This function is used to decrypt LSA secrets."""
+    decrypted_data = ''
+    j = 0
+    for i in range(0, len(secret), 8):
+        enc_block = secret[i:i+8]
+        block_key = key[j:j+7]
+        des_key = array.array('B')
+        des_key.append(ord(block_key[0]) >> 1)
+        des_key.append(((ord(block_key[0])&0x01)<<6)|(ord(block_key[1])>>2))
+        des_key.append(((ord(block_key[1])&0x03)<<5)|(ord(block_key[2])>>3))
+        des_key.append(((ord(block_key[2])&0x07)<<4)|(ord(block_key[3])>>4))
+        des_key.append(((ord(block_key[3])&0x0F)<<3)|(ord(block_key[4])>>5))
+        des_key.append(((ord(block_key[4])&0x1F)<<2)|(ord(block_key[5])>>6))
+        des_key.append(((ord(block_key[5])&0x3F)<<1)|(ord(block_key[6])>>7))
+        des_key.append(ord(block_key[6])&0x7F)
+        for i,v in enumerate(des_key):
+            des_key[i] = v << 1
+            des_key[i] ^= ((bitcount_B(v) + 1) & 1)
+        des_key = des_key.tostring()
+
+        cipher = EVP.Cipher(alg="des_ecb", key=des_key, iv="", op=m2.decrypt)
+        cipher.set_padding(0)
+        decrypted_data += cipher.update(enc_block) + cipher.final()
+        j += 7
+        if len(key[j:j+7]) < 7:
+            j = len(key[j:j+7])
+    dec_data_len = struct.unpack("<L", decrypted_data[:4])[0]
+    return decrypted_data[8:8+dec_data_len]
+
 def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
+    """Implementation of PBKDF2 that allows specifying both digest and mac
+    algorithm.
+    Default values:
+      * digest = sha1
+      * mac = hmac
+
+    Returns the corresponding expanded key which is keylen long.
+
+    """
     _dg = getattr(hashlib, digest)
     buff = ""
     i = 0
@@ -149,16 +205,19 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
     return buff[:keylen]
 
 def derivePwdHash(pwdhash, userSID, hashAlgo):
+    """Internal use. Computes the encryption key from a user's password hash"""
     hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
     dg = getattr(hashlib, hname)
     encKey = hmac.new(pwdhash, (userSID+"\0").encode("UTF-16LE"), dg).digest()
     return encKey
 
 def derivePassword(userPwd, userSID, hashAlgo):
+    """Internal use. Computes the encryption key from a user's password"""
     return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest(),
                          userSID, hashAlgo)
 
 def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
+    """Internal use. Decrypts data stored in DPAPI structures."""
     hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
     derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength,
             rounds, hname)
@@ -169,6 +228,7 @@ def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
     return cleartxt
 
 def DPAPIHmac(hashAlgo, pwdhash, hmacSalt, value):
+    """Internal function used to compute HMACs of DPAPI structures"""
     hname = {"HMAC":"sha1"}.get(hashAlgo.name, hashAlgo.name)
     dg = getattr(hashlib, hname)
     encKey = hmac.new(pwdhash, hmacSalt, dg).digest()

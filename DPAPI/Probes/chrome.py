@@ -21,7 +21,10 @@ from DPAPI.probe import DPAPIProbe
 from DPAPI.Core import blob
 
 class ChromePassword(DPAPIProbe):
+    """This class represents a Google Chrome password entry that can
+        be found in the SQLite databases of this browser.
 
+    """
     def parse(self, data):
         self.dpapiblob = blob.DPAPIBlob(data.remain())
 

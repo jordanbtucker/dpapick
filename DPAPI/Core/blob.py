@@ -22,13 +22,26 @@ from M2Crypto import *
 from eater import Eater, DataStruct
 
 class DPAPIBlob(DataStruct):
+    """Represents a DPAPI blob"""
+
     def __init__(self, raw=None):
+        """Constructs a DPAPIBlob. If raw is set, automatically calls
+            parse().
+
+        """
         self.cleartext = None
         self.decrypted = False
         self.crcComputed = None
         DataStruct.__init__(self, raw)
 
     def parse(self, data):
+        """Parses the given data. May raise exceptions if incorrect data are
+            given. You should not call this function yourself; DataStruct does
+
+            data is a DataStruct object.
+            Returns nothing.
+
+        """
         self.version = data.eat("L")
         self.provider = "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x" % data.eat("L2H8B")
 
@@ -60,6 +73,7 @@ class DPAPIBlob(DataStruct):
 
 
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
+        """Try to decrypt the blob. Returns True/False"""
         sessionkey = CryptSessionKey(masterkey, self.data, self.hashAlgo.name,
                                      entropy=entropy, strongPassword=strongPassword)
         keys = CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
