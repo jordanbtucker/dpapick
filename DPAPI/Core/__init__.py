@@ -16,6 +16,6 @@
 ##                                                                         ##
 #############################################################################
 
-__all__ = [ 'blob', 'masterkey', 'credhist', 'crypto' ]
+__all__ = [ 'blob', 'masterkey', 'credhist', 'crypto', 'registry' ]
 
 # vim:ts=4:expandtab:sw=4
