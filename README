@@ -25,8 +25,6 @@ see: http://chandlerproject.org/bin/view/Projects/MeTooCrypto
 
 Probes and other tool may require other modules to be able to retreive
 information such as:
-  * Hivex library (Windows registry manipulation)
-      see http://libguestfs.org/download/hivex/
   * python-sqlite3 for Google Chrome password database
   * CFPropertyList for Apple Safari keychain.plis
       see https://github.com/bencochran/CFPropertyList
