@@ -1,0 +1,8 @@
+\.rej$
+\.orig$
+\.pyc$
+~$
+\.git/
+\.gitignore$
+\.svn/
+build/

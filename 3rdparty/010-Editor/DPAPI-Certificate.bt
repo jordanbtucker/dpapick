@@ -1,0 +1,68 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-Certificate.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+#include "GUID.bt"
+#include "DPAPI-blob-internal.bt"
+
+#ifndef __CERTIFICATE__
+#define __CERTIFICATE__
+
+LittleEndian();
+
+typedef struct {
+    DWORD dwRevision;
+    DWORD dwUnk1 <hidden=true>;
+    DWORD cbDescr;
+    DWORD dwUnk2[2] <hidden=true>;
+    DWORD cbHeader;
+    DWORD cbPrivateKey;
+    DWORD cbCrc;
+    DWORD dwUnk3 <hidden=true>;
+    DWORD cbFlags <format=hex>;
+    CHAR  szDescription[cbDescr];
+} CertHeader;// <size=sizeOfCertHeader>;
+
+int sizeOfCertHeader(CertHeader &b) {
+    return 10 * sizeof (DWORD) + ReadUInt(startof(b) + 8);
+}
+
+typedef struct {
+    DWORD   dwUnk4[5] <hidden=true>;
+    CHAR    szSig[4]; // RSA1
+    DWORD   dwLen;
+    DWORD   dwUnk[3] <hidden=true>;
+    BYTE    pbData[dwLen] <format=hex>;
+} RSAHeader;// <size=sizeOfRSAHeader>;
+
+int sizeOfRSAHeader(RSAHeader &b) {
+    return 4 * sizeof (CHAR) + 9 * sizeof (DWORD) +
+            ReadUInt(startof(b) + 24);
+}
+
+typedef struct {
+    CertHeader head;
+
+    if (head.cbHeader > 0)
+        RSAHeader RSAHead;
+    if (head.cbPrivateKey > 0)
+        DPAPIBlob RSAPrivateKey;
+    if (head.cbFlags > 0)
+        DPAPIBlob RSAFlags;
+} Certificate;// <size=sizeOfCertificate>;
+
+int sizeOfCertificate(Certificate &b) {
+    return sizeof (CertHeader) +
+        ReadUInt(startof(b) + 5 * sizeof (DWORD)) +
+        ReadUInt(startof(b) + 6 * sizeof (DWORD)) +
+        ReadUInt(startof(b) + 9 * sizeof (DWORD));
+}
+
+#endif
+
+Certificate c;
