@@ -22,8 +22,7 @@ setup(
     name = 'DPAPI',
     version = '0.3',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
-    scripts = ['bin/dpapidec', 'bin/chrome', 'bin/getcredentialsha1',
-               'bin/googletalk', 'bin/lsasecrets'],
+    scripts = ['bin/dpapick'],
 
     # Metadata
     author = 'Jean-Michel PICOD',
