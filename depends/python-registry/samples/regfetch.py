@@ -2,7 +2,7 @@
 
 #    This file is part of python-registry.
 #
-#   Copyright 2011 Will Ballenthin <willi.ballenthin@mandiant.com>
+#   Copyright 2011 Will Ballenthin <william.ballenthin@mandiant.com>
 #                    while at Mandiant <http://www.mandiant.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,4 +36,4 @@ if __name__ == '__main__':
     value = key.value(sys.argv[3])
 
 
-    sys.stdout.write(value.value())
+    sys.stdout.write(str(value.value()))

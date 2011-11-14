@@ -2,7 +2,7 @@
 
 #    This file is part of python-registry.
 #
-#   Copyright 2011 Will Ballenthin <willi.ballenthin@mandiant.com>
+#   Copyright 2011 Will Ballenthin <william.ballenthin@mandiant.com>
 #                    while at Mandiant <http://www.mandiant.com>
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,12 @@ RegLink = 0x0006
 RegResourceList = 0x0008
 RegFullResourceDescriptor = 0x0009
 RegResourceRequirementsList = 0x000A
+
+_global_warning_messages = []
+def warn(msg):
+    if msg not in _global_warning_messages:
+        _global_warning_messages.append(msg)
+        print "Warning: %s" % (msg)
 
 def parse_windows_timestamp(qword):
     # see http://integriography.wordpress.com/2010/01/16/using-phython-to-parse-and-present-windows-64-bit-timestamps/
@@ -498,15 +504,17 @@ class DBRecord(Record):
 
 class VKRecord(Record):
     """
-    The VKRecord holds one name-value pair.  The data may be one many types, including
-    strings, integers, and binary data.    """
+    The VKRecord holds one name-value pair.  The data may be one many types, 
+    including strings, integers, and binary data.    
+    """
     def __init__(self, buf, offset, parent):
         """
         Constructor.
         Arguments:
         - `buf`: Byte string containing Windows Registry file.
         - `offset`: The offset into the buffer at which the block starts.
-        - `parent`: The parent block, which links to this block. This should be an HBINCell.
+        - `parent`: The parent block, which links to this block. 
+              This should be an HBINCell.
         """
         super(VKRecord, self).__init__(buf, offset, parent)
 
@@ -660,8 +668,13 @@ class VKRecord(Record):
                 # data is contained in the data_offset field
                 s = struct.unpack_from("<%ds" % (4), self._buf, data_offset)[0]
             elif 0x3fd8 < data_length < 0x80000000:
-                db = HBINCell(self._buf, data_offset, self).child() # should be db
-                s = db.large_data(data_length)
+                d = HBINCell(self._buf, data_offset, self)
+                if d.data_id() == "db":
+                    # this should always be the case
+                    # but empirical testing does not confirm this
+                    s = d.child().large_data(data_length)
+                else:
+                    s = d.raw_data()[:data_length]
             else:
                 d = HBINCell(self._buf, data_offset, self)
                 s = struct.unpack_from("<%ds" % (data_length), self._buf, d.data_offset())[0]
@@ -679,13 +692,18 @@ class VKRecord(Record):
                         raise
             s = s.partition('\x00')[0]
             return s
-        elif data_type == RegBin:
+        elif data_type == RegBin or data_type == RegNone:
             if data_length >= 0x80000000:
                 data_length -= 0x80000000
                 return self._buf[data_offset:data_offset + data_length]
             elif 0x3fd8 < data_length < 0x80000000:
-                db = HBINCell(self._buf, data_offset, self).child() # should be db
-                return db.large_data(data_length)
+                d = HBINCell(self._buf, data_offset, self)
+                if d.data_id() == "db":
+                    # this should always be the case
+                    # but empirical testing does not confirm this
+                    return d.child().large_data(data_length)
+                else:
+                    return d.raw_data()[:data_length]
             return self._buf[data_offset + 4:data_offset + 4 + data_length]
         elif data_type == RegDWord:
             return self.unpack_dword(0x8)
@@ -695,37 +713,32 @@ class VKRecord(Record):
                 # be composed of completely \x00, so the strings are empty
                 return []
             elif 0x3fd8 < data_length < 0x80000000:
-                db = HBINCell(self._buf, data_offset, self).child() # should be db
-                data = db.large_data(data_length).decode("utf16")
+                d = HBINCell(self._buf, data_offset, self)
+                if d.data_id() == "db":
+                    s = d.child().large_data(data_length)
+                else:
+                    s = d.raw_data()[:data_length]
             else:
-                data = self._buf[data_offset + 4:data_offset + 4 + data_length].decode("utf16")
-            return data.split("\x00")
+                s = self._buf[data_offset + 4:data_offset + 4 + data_length]
+            s = s.decode("utf16")
+            return s.split("\x00")
         elif data_type == RegQWord:
             d = HBINCell(self._buf, data_offset, self)
             return struct.unpack_from("<Q", self._buf, d.data_offset())[0]
-        elif data_type == RegNone:
-            # TODO test this
-            if data_length >= 0x80000000:
-                data_length -= 0x80000000
-                return self._buf[data_offset:data_offset + data_length]
-            elif 0x3fd8 < data_length < 0x80000000:
-                db = HBINCell(self._buf, data_offset, self).child() # should be db
-                return db.large_data(data_length)
-            return self._buf[data_offset + 4:data_offset + 4 + data_length]
         elif data_type == RegBigEndian:
-            print "Warning: Data type RegBigEndian not yet supported"
+            warn("Data type RegBigEndian not yet supported")
             return False
         elif data_type == RegLink:
-            print "Warning: Data type RegLink not yet supported"
+            warn("Data type RegLink not yet supported")
             return False
         elif data_type == RegResourceList:
-            print "Warning: Data type RegResourceList not yet supported"
+            warn("Data type RegResourceList not yet supported")
             return False
         elif data_type == RegFullResourceDescriptor:
-            print "Warning: Data type RegFullResourceDescriptor not yet supported"
+            warn("Data type RegFullResourceDescriptor not yet supported")
             return False
         elif data_type == RegResourceRequirementsList:
-            print "Warning: Data type RegResourceRequirementsList not yet supported"
+            warn("Data type RegResourceRequirementsList not yet supported")
             return False
         else:
             raise UnknownTypeException("Unknown VK Record type 0x%x at 0x%x" % (data_type, self.offset()))
@@ -809,6 +822,9 @@ class SubkeyList(Record):
     def __str__(self):
         return "SubkeyList(Length: %d) at 0x%x" % (0, self.offset())
 
+    def _keys_len(self):
+        return self.unpack_word(0x2)
+
     def keys(self):
         """
         A generator that yields the NKRecords referenced by this list.
@@ -818,14 +834,17 @@ class SubkeyList(Record):
 
 class RIRecord(SubkeyList):
     """
-    """    
+    The RIRecord is a structure linking to structures containing 
+    a lists of offsets/pointers to subkey NKRecords. It is like a double (or more)
+    indirect block.
+    """
     def __init__(self, buf, offset, parent):
         """
-        
+        Constructor.
         Arguments:
-        - `buf`:
-        - `offset`:
-        - `parent`:
+        - `buf`: Byte string containing Windows Registry file.
+        - `offset`: The offset into the buffer at which the block starts.
+        - `parent`: The parent block, which links to this block. 
         """
         super(RIRecord, self).__init__(buf, offset, parent)
 
@@ -833,34 +852,23 @@ class RIRecord(SubkeyList):
         return "RIRecord(Length: %d) at 0x%x" % (len(self.keys()), self.offset())
 
     def keys(self):
-        d = HBINCell(self._buf, self.abs_offset_from_hbin_offset(self.unpack_dword(0x8)), self)
-
-        try:
-            return d.child().keys()
-        except RegistryStructureDoesNotExist:
-            raise ParseException("Unsupported subkey list encountered.")
-
-class LIRecord(SubkeyList):
-    """
-    """
-    def __init__(self, buf, offset, parent):
         """
+        A generator that yields the NKRecords referenced by this list.
+        ri style entry size.
         """
-        super(LIRecord, self).__init__(buf, offset, parent)
+        key_index = 0x4
 
-    def __str__(self):
-        return "LIRecord(Length: %d) at 0x%x" % (1, self.offset())
+        for _ in range(0, self._keys_len()):
+            key_offset = self.abs_offset_from_hbin_offset(self.unpack_dword(key_index))        
+            d = HBINCell(self._buf, key_offset, self)
 
-    def keys(self):
-        d = HBINCell(self._buf, self.abs_offset_from_hbin_offset(self.unpack_dword(0x4)), self)
+            try:
+                for k in d.child().keys():
+                    yield k
+            except RegistryStructureDoesNotExist:
+                raise ParseException("Unsupported subkey list encountered.")
 
-        if d.data_id() != "nk":
-            raise ParseException("Unexpected subkey structure encountered.")
-
-        try:
-            return [d.child()]
-        except RegistryStructureDoesNotExist:
-            raise ParseException("Unable to parse subkey.")
+            key_index += 4
 
 class DirectSubkeyList(SubkeyList):
     def __init__(self, buf, offset, parent):
@@ -869,19 +877,17 @@ class DirectSubkeyList(SubkeyList):
         Arguments:
         - `buf`: Byte string containing Windows Registry file.
         - `offset`: The offset into the buffer at which the block starts.
-        - `parent`: The parent block, which links to this block. The parent of a SubkeyList SHOULD be a NKRecord.
+        - `parent`: The parent block, which links to this block.
         """
         super(DirectSubkeyList, self).__init__(buf, offset, parent)
 
     def __str__(self):
         return "DirectSubkeyList(Length: %d) at 0x%x" % (self._keys_len(), self.offset())
-        
-    def _keys_len(self):
-        return self.unpack_word(0x2)
 
     def keys(self):
         """
         A generator that yields the NKRecords referenced by this list.
+        Assumes each entry is 0x8 bytes long (lf / lh style).
         """
         key_index = 0x4
 
@@ -892,11 +898,10 @@ class DirectSubkeyList(SubkeyList):
             yield NKRecord(self._buf, d.data_offset(), self)
             key_index += 8
 
-class LFRecord(DirectSubkeyList):
+class LIRecord(DirectSubkeyList):
     """
-    The LFRecord is a simple structure containing a list of offsets/pointers to subkey NKRecords.
-    The LFRecord also contains a hash for the name of the subkey pointed to by the offset, which enables
-    more efficient seaching of the Registry tree.
+    The LIRecord is a simple structure containing a list of offsets/pointers 
+    to subkey NKRecords. It is a single indirect block.
     """
     def __init__(self, buf, offset, parent):
         """
@@ -904,7 +909,41 @@ class LFRecord(DirectSubkeyList):
         Arguments:
         - `buf`: Byte string containing Windows Registry file.
         - `offset`: The offset into the buffer at which the block starts.
-        - `parent`: The parent block, which links to this block. The parent of a SubkeyList SHOULD be a NKRecord.
+        - `parent`: The parent block, which links to this block.
+        """
+        super(LIRecord, self).__init__(buf, offset, parent)
+
+    def __str__(self):
+        return "LIRecord(Length: %d) at 0x%x" % (self._keys_len(), self.offset())
+
+    def keys(self):
+        """
+        A generator that yields the NKRecords referenced by this list.
+        li style entry size.
+        """
+        key_index = 0x4
+
+        for _ in range(0, self._keys_len()):
+            key_offset = self.abs_offset_from_hbin_offset(self.unpack_dword(key_index))
+            
+            d = HBINCell(self._buf, key_offset, self)
+            yield NKRecord(self._buf, d.data_offset(), self)
+            key_index += 4
+
+class LFRecord(DirectSubkeyList):
+    """
+    The LFRecord is a simple structure containing a list of offsets/pointers 
+    to subkey NKRecords.
+    The LFRecord also contains a hash for the name of the subkey pointed to 
+    by the offset, which enables more efficient seaching of the Registry tree.
+    """
+    def __init__(self, buf, offset, parent):
+        """
+        Constructor.
+        Arguments:
+        - `buf`: Byte string containing Windows Registry file.
+        - `offset`: The offset into the buffer at which the block starts.
+        - `parent`: The parent block, which links to this block. 
         """
         super(LFRecord, self).__init__(buf, offset, parent)
         _id = self.unpack_string(0x0, 2)
@@ -916,9 +955,10 @@ class LFRecord(DirectSubkeyList):
 
 class LHRecord(DirectSubkeyList):
     """
-    The LHRecord is a simple structure containing a list of offsets/pointers to subkey NKRecords.
-    The LHRecord also contains a hash for the name of the subkey pointed to by the offset, which enables
-    more efficient seaching of the Registry tree.
+    The LHRecord is a simple structure containing a list of offsets/pointers 
+    to subkey NKRecords.
+    The LHRecord also contains a hash for the name of the subkey pointed to 
+    by the offset, which enables more efficient seaching of the Registry tree.
     The LHRecord is analogous to the LFRecord, but it uses a different hashing function.
     """
     def __init__(self, buf, offset, parent):
@@ -927,7 +967,7 @@ class LHRecord(DirectSubkeyList):
         Arguments:
         - `buf`: Byte string containing Windows Registry file.
         - `offset`: The offset into the buffer at which the block starts.
-        - `parent`: The parent block, which links to this block. The parent of a SubkeyList SHOULD be a NKRecord.
+        - `parent`: The parent block, which links to this block.
         """
         super(LHRecord, self).__init__(buf, offset, parent)
         _id = self.unpack_string(0x0, 2)
@@ -940,8 +980,8 @@ class LHRecord(DirectSubkeyList):
 class NKRecord(Record):
     """
     The NKRecord defines the tree-like structure of the Windows Registry.
-    It contains pointers/offsets to the ValueList (values associated with the given record), and 
-    to subkeys.
+    It contains pointers/offsets to the ValueList (values associated with the given record), 
+    and to subkeys.
     """
     def __init__(self, buf, offset, parent):
         """
@@ -1192,14 +1232,3 @@ class HBINBlock(RegistryBlock):
                 c = c.next()
             except RegistryStructureDoesNotExist:
                 break
-
-
-
-
-
-
-
-
-
-
-
