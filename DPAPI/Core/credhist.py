@@ -97,7 +97,7 @@ class CredhistEntry(DataStruct):
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
     def decryptWithKey(self, enckey):
-        """Decrypts this credhist entry using the given key."""
+        """Decrypts this credhist entry using the given encryption key."""
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted, 
                                       enckey, self.iv, self.rounds)
         self.pwdhash = cleartxt[:self.dataLen]
@@ -106,7 +106,8 @@ class CredhistEntry(DataStruct):
 
     def decryptWithHash(self, pwdhash):
         """Decrypts this credhist entry with the given user's password hash.
-        Simply computes the encryption with then calls self.decryptWithKey()
+        Simply computes the encryption key with the given hash then calls
+        self.decryptWithKey() to finish the decryption.
 
         """
         self.decryptWithKey(crypto.derivePwdHash(pwdhash, str(self.userSID),
@@ -120,6 +121,13 @@ class CredhistEntry(DataStruct):
         return self.decryptWithHash(hashlib.sha1(password.encode("UTF-16LE")).digest())
 
     def jtr_shadow(self):
+        """Returns a string that can be passed to John the Ripper to crack this
+            CREDHIST entry. Requires to use a recent jumbo version of JtR plus
+            the configuration snipplet in the "3rdparty" directory of DPAPIck.
+
+            Unless you know what you are doing, you shall not call this function
+            yourself. Instead, use the method provided by CredHistPool object.
+        """
         if self.pwdhash is not None:
             return "%s:md5_gen(1400)%s" % (self.userSID, self.pwdhash.encode('hex'))
         return ""
@@ -201,7 +209,7 @@ class CredHistFile(DataStruct):
     def jtr_shadow(self, validonly=False):
         """Returns a string that can be passed to John the Ripper to crack the
             CREDHIST entries. Requires to use a recent jumbo version of JtR plus
-            the configuration snipplet in the "3rd party" directory of DPAPIck.
+            the configuration snipplet in the "3rdparty" directory of DPAPIck.
 
             If validonly is set to True, will only extract CREDHIST entries
             that are known to have sucessfully decrypted a masterkey.
