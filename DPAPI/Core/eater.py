@@ -101,11 +101,11 @@ class Eater:
         return self.pop_string(l)
     
     def remain(self):
-        """Returns all the bytes that have not been eated or poped yet."""
+        """Returns all the bytes that have not been eated nor poped yet."""
         return self.raw[self.ofs:]
 
     def eat_sub(self, length):
-        """Eats a sub-structure that is contained is the next length bytes"""
+        """Eats a sub-structure that is contained in the next length bytes"""
         sub= self.__class__(self.raw[self.ofs:self.ofs+length], 
                             endianness = self.endianness)
         self.ofs += length

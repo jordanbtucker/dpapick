@@ -25,18 +25,19 @@ class PrivateKeyBlob(DPAPIProbe):
         def parse(self, data):
             self.magic = data.eat("4s") # RSA1
             self.len1 = data.eat("L")
-            self.unk1 = data.eat("L") # 0x400
-            self.unk2 = data.eat("L") # 0x7F
-            self.unk3 = data.eat("L") # 0X00010001
-            self.data = data.eat("%is" % self.len1) ## !! ends with 8 NULL-bytes
+            self.bitlength = data.eat("L") # 0x400
+            self.unk = data.eat("L") # 0x7F
+            self.pubexp = data.eat("L") # 0x00010001
+            self.data = data.eat("%is" % self.len1)
+            self.data = self.data[:self.bitlength/8] ## strip NULL-bytes
 
         def __repr__(self):
             s = [ "RSA header" ]
-            s.append("\tmagic    = %s" % self.magic)
-            s.append("\tunknown1 = %x" % self.unk1)
-            s.append("\tunknown2 = %x" % self.unk2)
-            s.append("\tunknown3 = %x" % self.unk3)
-            s.append("\tdata     = %s" % self.data.encode('hex'))
+            s.append("\tmagic     = %s" % self.magic)
+            s.append("\tbitlength = %d" % self.bitlength)
+            s.append("\tunknown   = %x" % self.unk)
+            s.append("\tpubexp    = %d" % self.pubexp)
+            s.append("\tdata      = %s" % self.data.encode('hex'))
             return "\n".join(s)
 
     class RSAPrivKey(DPAPIProbe):

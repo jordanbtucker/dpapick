@@ -20,7 +20,7 @@ from Registry import Registry
 from DPAPI.Core import crypto
 
 class Regedit:
-    """This class provides several functions to handle regsitry extraction
+    """This class provides several functions to handle registry extraction
     stuff.
 
     """
@@ -52,13 +52,13 @@ class Regedit:
         return self.syskey
 
     def get_lsa_key(self, security):
-        """Returnis and decrypts the LSA secret key for "CurrentControlSet".
+        """Returns and decrypts the LSA secret key for "CurrentControlSet".
         It is stored under Policy\\PolSecretEncryptionKey.
 
         security is the full path the the SECURITY registry file (usually
         located under %WINDIR%\\system32\\config\\ directory.
 
-        To decrypt the LSA key, syskey is required. Thus you need to first call
+        To decrypt the LSA key, syskey is required. Thus you must first call
         self.get_syskey() if it has not been previously done.
 
         """
@@ -71,7 +71,7 @@ class Regedit:
         return self.lsakey
 
     def get_lsa_secrets(self, security, system):
-        """Retrieves and decrypt LSA secrets from the registry.
+        """Retrieves and decrypts LSA secrets from the registry.
         security and system arguments are the full path to the corresponding
         registry files.
         This function automatically calls self.get_syskey() and

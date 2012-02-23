@@ -80,7 +80,9 @@ CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
 def bitcount_B(x):
-    """Internal use. Returns number of 1s in the binary form of the byte x"""
+    """Internal use. Returns number of 1s in the binary form of the byte x
+    Used for the des_set_odd_parity
+    """
     x = ((x&0xaa)>>1) + (x&0x55)
     x = ((x&0xcc)>>2) + (x&0x33)
     x = ((x&0xf0)>>4) + (x&0x0f)
@@ -116,7 +118,7 @@ def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPas
     return digest.digest()
 
 def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
-    """Internal use. Mimics the correponding native Microsoft function"""
+    """Internal use. Mimics the corresponding native Microsoft function"""
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
         h = _dg(h).digest()
@@ -142,7 +144,7 @@ def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
     return k
 
 def decrypt_lsa_key(lsakey, syskey):
-    """This function decrypts LSA key using the syskey"""
+    """This function decrypts the LSA key using the syskey"""
     dg = hashlib.md5()
     dg.update(syskey)
     for i in xrange(1000):
@@ -152,7 +154,9 @@ def decrypt_lsa_key(lsakey, syskey):
     return deskey[0x10:0x20]
 
 def SystemFunction005(secret, key):
-    """This function is used to decrypt LSA secrets."""
+    """This function is used to decrypt LSA secrets.
+    Reproduces the corresponding Windows internal function.
+    """
     decrypted_data = ''
     j = 0
     for i in range(0, len(secret), 8):

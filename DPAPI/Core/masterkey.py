@@ -63,7 +63,7 @@ class MasterKey(DataStruct):
         also extracts the HMAC part of the decrypted stuff and compare it with
         the computed one.
 
-        Notes that once sucessfully decrypted, the masterkey will not be
+        Note that, once sucessfully decrypted, the masterkey will not be
         decrypted anymore; this function will simply return.
 
         """
@@ -217,7 +217,7 @@ class MasterKeyFile(DataStruct):
 
 
 class MasterKeyPool:
-    """This class is hte pivot for using DPAPIck. It manages all the DPAPI
+    """This class is the pivot for using DPAPIck. It manages all the DPAPI
     structures and contains all the decryption intelligence.
 
     """
