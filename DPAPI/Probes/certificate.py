@@ -40,16 +40,49 @@ class PrivateKeyBlob(DPAPIProbe):
             s.append("\tdata      = %s" % self.data.encode('hex'))
             return "\n".join(s)
 
+    class RSAKey(DPAPIProbe):
+        def parse(self, data):
+            self.magic = data.eat("4s") # RSA2
+            len1 = data.eat("L")
+            self.bitlength = data.eat("L")
+            chunk = self.bitlength / 16
+            self.unk = data.eat("L")
+            self.pubexp = data.eat("L")
+            self.modulus = data.eat("%is" % len1)[:2*chunk]
+            self.prime1 = data.eat("%is" % (len1/2))[:chunk]
+            self.prime2 = data.eat("%is" % (len1/2))[:chunk]
+            self.exponent1 = data.eat("%is" % (len1/2))[:chunk]
+            self.exponent2 = data.eat("%is" % (len1/2))[:chunk]
+            self.coefficient = data.eat("%is" % (len1/2))[:chunk]
+            self.privExponent = data.eat("%is" % len1)[:2*chunk]
+
+        def __repr__(self):
+            s = [ "RSA key pair" ]
+            s.append("\tPublic exponent = %d" % self.pubexp)
+            s.append("\tModulus (n)     = %s" % self.modulus.encode('hex'))
+            s.append("\tPrime 1 (p)     = %s" % self.prime1.encode('hex'))
+            s.append("\tPrime 2 (q)     = %s" % self.prime2.encode('hex'))
+            s.append("\tExponent 1      = %s" % self.exponent1.encode('hex'))
+            s.append("\tExponent 2      = %s" % self.exponent2.encode('hex'))
+            s.append("\tCoefficient     = %s" % self.coefficient.encode('hex'))
+            s.append("\tPrivate exponent= %s" % self.privExponent.encode('hex'))
+            return "\n".join(s)
+
     class RSAPrivKey(DPAPIProbe):
         def parse(self, data):
             self.dpapiblob = blob.DPAPIBlob(data.remain())
 
+        def postprocess(self, **k):
+            self.clearKey = PrivateKeyBlob.RSAKey(self.dpapiblob.cleartext)
+
         def __repr__(self):
-            s = [ "RSA Private Key" ]
+            s = [ "RSA Private Key Blob" ]
             if self.entropy:
                 s.append("entropy = %s" % self.entropy.encode('hex'))
             if hasattr(self, "strong"):
                 s.append("strong = %s" % self.strong.encode('hex'))
+            if self.dpapiblob.decrypted:
+                s.append(repr(self.clearKey))
             s.append(repr(self.dpapiblob))
             return "\n".join(s)
 
