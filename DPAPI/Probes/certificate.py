@@ -19,6 +19,11 @@
 
 from DPAPI.probe import DPAPIProbe
 from DPAPI.Core import blob
+try:
+    from pyasn1.type import univ, namedtype
+    from pyasn1.codec.der import encoder
+except:
+    raise Exception("PyASN1 is required.")
 
 class PrivateKeyBlob(DPAPIProbe):
     class RSAHeader(DPAPIProbe):
@@ -41,6 +46,19 @@ class PrivateKeyBlob(DPAPIProbe):
             return "\n".join(s)
 
     class RSAKey(DPAPIProbe):
+        class RSAKeyASN1(univ.Sequence):
+                componentType = namedtype.NamedTypes(
+                        namedtype.NamedType('version', univ.Integer()),
+                        namedtype.NamedType('modulus', univ.Integer()),
+                        namedtype.NamedType('pubexpo', univ.Integer()),
+                        namedtype.NamedType('privexpo', univ.Integer()),
+                        namedtype.NamedType('prime1', univ.Integer()),
+                        namedtype.NamedType('prime2', univ.Integer()),
+                        namedtype.NamedType('exponent1', univ.Integer()),
+                        namedtype.NamedType('exponent2', univ.Integer()),
+                        namedtype.NamedType('coefficient', univ.Integer())
+                        )
+
         def parse(self, data):
             self.magic = data.eat("4s") # RSA2
             len1 = data.eat("L")
@@ -55,6 +73,17 @@ class PrivateKeyBlob(DPAPIProbe):
             self.exponent2 = data.eat("%is" % (len1/2))[:chunk]
             self.coefficient = data.eat("%is" % (len1/2))[:chunk]
             self.privExponent = data.eat("%is" % len1)[:2*chunk]
+            self.asn1 = self.RSAKeyASN1()
+            ll = lambda x: long(x.encode('hex'), 16)
+            self.asn1.setComponentByName('version', 0)
+            self.asn1.setComponentByName('modulus', ll(self.modulus))
+            self.asn1.setComponentByName('pubexpo', self.pubexp)
+            self.asn1.setComponentByName('privexpo', ll(self.privExponent))
+            self.asn1.setComponentByName('prime1', ll(self.prime1))
+            self.asn1.setComponentByName('prime2', ll(self.prime2))
+            self.asn1.setComponentByName('exponent1', ll(self.exponent1))
+            self.asn1.setComponentByName('exponent2', ll(self.exponent2))
+            self.asn1.setComponentByName('coefficient', ll(self.coefficient))
 
         def __repr__(self):
             s = [ "RSA key pair" ]
@@ -66,6 +95,14 @@ class PrivateKeyBlob(DPAPIProbe):
             s.append("\tExponent 2      = %s" % self.exponent2.encode('hex'))
             s.append("\tCoefficient     = %s" % self.coefficient.encode('hex'))
             s.append("\tPrivate exponent= %s" % self.privExponent.encode('hex'))
+            return "\n".join(s)
+
+        def export(self):
+            import base64
+            s = [ '-----BEGIN RSA PRIVATE KEY-----' ]
+            text = base64.encodestring(encoder.encode(self.asn1))
+            s.append(text.rstrip("\n"))
+            s.append('-----END RSA PRIVATE KEY-----')
             return "\n".join(s)
 
     class RSAPrivKey(DPAPIProbe):
@@ -85,6 +122,10 @@ class PrivateKeyBlob(DPAPIProbe):
                 s.append(repr(self.clearKey))
             s.append(repr(self.dpapiblob))
             return "\n".join(s)
+
+        def export(self):
+            if self.dpapiblob.decrypted:
+                return self.clearKey.export()
 
     class RSAFlags(DPAPIProbe):
         def parse(self, data):
@@ -140,6 +181,9 @@ class PrivateKeyBlob(DPAPIProbe):
         else:
             return True
         return False
+
+    def export(self):
+        return self.privateKey.export()
 
     def __repr__(self):
         s = [ "Microsoft Certificate" ]
