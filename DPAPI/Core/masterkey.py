@@ -226,6 +226,7 @@ class MasterKeyPool:
         self.keys = defaultdict(lambda: [])
         self.creds = {}
         self.system = None
+        self.passwords = []
 
     def addMasterKey(self, mkey):
         """Add a MasterKeyFile is the pool.
@@ -306,11 +307,14 @@ class MasterKeyPool:
             if not mk.decrypted:
                 mk.decryptWithPassword(userSID, password)
                 if mk.decrypted:
+                    self.passwords.append(password)
                     n += 1
         return n
 
     def __repr__(self):
         s  = [ "MasterKeyPool:" ]
+        s.append("Passwords:")
+        s.append(repr(self.passwords))
         s.append("Keys:")
         s.append(repr(self.keys.items()))
         s.append(repr(self.system))
