@@ -26,7 +26,19 @@ except:
     raise Exception("PyASN1 is required.")
 
 class PrivateKeyBlob(DPAPIProbe):
+    """This class represents a RSA private key file as used by Internet Explorer
+    and EFS certificates.
+    They are located under %APPDATA%\\Microsoft\\Crypto\\RSA
+    If one requires to have the full PKCS#12 certificate, the description field
+    may be used to locate the corresponding certificate file, located under
+    %APPDATA%\\Microsoft\\SystemCertificates\\My\\Certificates
+    This description field is encoded in UTF-16LE format at the beginning of the
+    certificate file.
+    """
     class RSAHeader(DPAPIProbe):
+        """This subclass represents the header + modulus, beginning with the
+        magic value "RSA1"
+        """
         def parse(self, data):
             self.magic = data.eat("4s") # RSA1
             self.len1 = data.eat("L")
@@ -46,7 +58,13 @@ class PrivateKeyBlob(DPAPIProbe):
             return "\n".join(s)
 
     class RSAKey(DPAPIProbe):
+        """This subclass represents the RSA privatekey BLOB, beginning with the
+        magic value "RSA2"
+        """
         class RSAKeyASN1(univ.Sequence):
+            """subclass for ASN.1 sequence representing the RSA key pair.
+            Mainly useful to export the key to OpenSSL
+            """
                 componentType = namedtype.NamedTypes(
                         namedtype.NamedType('version', univ.Integer()),
                         namedtype.NamedType('modulus', univ.Integer()),
@@ -98,6 +116,7 @@ class PrivateKeyBlob(DPAPIProbe):
             return "\n".join(s)
 
         def export(self):
+            """This functions exports the RSA key pair in PEM format"""
             import base64
             s = [ '-----BEGIN RSA PRIVATE KEY-----' ]
             text = base64.encodestring(encoder.encode(self.asn1))
@@ -106,6 +125,8 @@ class PrivateKeyBlob(DPAPIProbe):
             return "\n".join(s)
 
     class RSAPrivKey(DPAPIProbe):
+        """Internal use. This represents the DPAPI BLOB containing the RSA
+        key pair"""
         def parse(self, data):
             self.dpapiblob = blob.DPAPIBlob(data.remain())
 
@@ -128,6 +149,7 @@ class PrivateKeyBlob(DPAPIProbe):
                 return self.clearKey.export()
 
     class RSAFlags(DPAPIProbe):
+        """This subclass represents the export flags BLOB"""
         def parse(self, data):
             self.dpapiblob = blob.DPAPIBlob(data.remain())
 
@@ -183,6 +205,8 @@ class PrivateKeyBlob(DPAPIProbe):
         return False
 
     def export(self):
+        """This functions encodes the RSA key pair in PEM format. Simply calls
+        the same function on the key blob."""
         return self.privateKey.export()
 
     def __repr__(self):
