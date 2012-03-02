@@ -26,8 +26,12 @@ see: http://chandlerproject.org/bin/view/Projects/MeTooCrypto
 Probes and other tool may require other modules to be able to retreive
 information such as:
   * python-sqlite3 for Google Chrome password database
-  * CFPropertyList for Apple Safari keychain.plis
+  * CFPropertyList for Apple Safari keychain.plist
       see https://github.com/bencochran/CFPropertyList
+  * python-registry for low-level manipulation of hives
+      see https://github.com/williballenthin/python-registry
+  * pyASN1 for the RSA key pair manipulation
+      see http://pyasn1.sourceforge.net/
 
 We also recommend the use of MoonSols Windows Memory Toolkit to convert
 hibernation file to usable memory dumps and be able to extract credentials
