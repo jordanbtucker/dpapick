@@ -20,7 +20,7 @@ typedef struct {
     DWORD dwUnk1 <hidden=true>;
     DWORD cbDescr;
     DWORD dwUnk2[2] <hidden=true>;
-    DWORD cbHeader;
+    DWORD cbPublicKey;
     DWORD cbPrivateKey;
     DWORD cbCrc;
     DWORD dwUnk3 <hidden=true>;
@@ -29,27 +29,57 @@ typedef struct {
 } CertHeader;// <size=sizeOfCertHeader>;
 
 int sizeOfCertHeader(CertHeader &b) {
-    return 10 * sizeof (DWORD) + ReadUInt(startof(b) + 8);
+    return 10 * sizeof (DWORD) + ReadUInt(startof(b) + 2 * sizeof (DWORD));
 }
 
 typedef struct {
-    DWORD   dwUnk4[5] <hidden=true>;
     CHAR    szSig[4]; // RSA1
     DWORD   dwLen;
-    DWORD   dwUnk[3] <hidden=true>;
-    BYTE    pbData[dwLen] <format=hex>;
-} RSAHeader;// <size=sizeOfRSAHeader>;
+    DWORD   dwBitLength;
+    DWORD   dwUnk <hidden=true>;
+    DWORD   dwPublicExponent;
+    BYTE    pbModulus[dwBitLength / 8] <format=hex>;
+    BYTE    pbPadding[dwLen - (dwBitLength / 8)] <hidden=true>;
+} RSAPublicKey;// <size=sizeOfRSAPublicKey>;
 
-int sizeOfRSAHeader(RSAHeader &b) {
-    return 4 * sizeof (CHAR) + 9 * sizeof (DWORD) +
-            ReadUInt(startof(b) + 24);
+int sizeOfRSAPublicKey(RSAPublicKey &b) {
+    return 4 * sizeof (CHAR) + 4 * sizeof (DWORD) +
+            ReadUInt(startof(b) + 4 * sizeof (CHAR));
+}
+
+typedef struct {
+    CHAR   szSig[4]; // RSA2
+    DWORD  dwLen;
+    DWORD  dwBitLength;
+    DWORD  dwUnk <hidden=true>;
+    DWORD  dwPublicExponent;
+    BYTE   pbModulus[dwBitLength / 8] <format=hex>;
+    BYTE   pbPadding1[dwLen - (dwBitLength / 8)] <hidden=true>;
+    BYTE   pbPrime1[dwBitLength / 16] <format=hex>;
+    BYTE   pbPadding2[(dwLen / 2) - (dwBitLength / 16)] <hidden=true>;
+    BYTE   pbPrime2[dwBitLength / 16] <format=hex>;
+    BYTE   pbPadding3[(dwLen / 2) - (dwBitLength / 16)] <hidden=true>;
+    BYTE   pbExponent1[dwBitLength / 16] <format=hex>;
+    BYTE   pbPadding4[(dwLen / 2) - (dwBitLength / 16)] <hidden=true>;
+    BYTE   pbExponent2[dwBitLength / 16] <format=hex>;
+    BYTE   pbPadding5[(dwLen / 2) - (dwBitLength / 16)] <hidden=true>;
+    BYTE   pbCoefficient[dwBitLength / 16] <format=hex>;
+    BYTE   pbPadding6[(dwLen / 2) - (dwBitLength / 16)] <hidden=true>;
+    BYTE   pbPrivateExponent[dwBitLength / 8] <format=hex>;
+    BYTE   pbPadding7[dwLen - (dwBitLength / 8)] <hidden=true>;
+} RSAPrivateKeyCleared; // <size=sizeOfRSAPrivateKeyCleared>;
+
+int sizeOfRSAPrivateKeyCleared(RSAPrivateKeyCleared &b) {
+    return 4 * sizeof (CHAR) + 4 * sizeof (DWORD) +
+            9 * (ReadUInt(startof(b) + 4 * sizeof (CHAR)) / 2)
 }
 
 typedef struct {
     CertHeader head;
 
-    if (head.cbHeader > 0)
-        RSAHeader RSAHead;
+    if (head.cbPublicKey > 0)
+        DWORD   dwUnk4[5] <hidden=true>;
+        RSAPublicKey RSAPubKey;
     if (head.cbPrivateKey > 0)
         DPAPIBlob RSAPrivateKey;
     if (head.cbFlags > 0)
