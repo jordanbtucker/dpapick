@@ -66,7 +66,7 @@ class SkypeAccount(DPAPIProbe):
 
     def jtr_shadow(self):
         if self.login is not None:
-            return "%s:md5_gen(1401)%s" % (self.login, self.cleartext[:32])
+            return "%s:$dynamic_1401$%s" % (self.login, self.cleartext[:32])
         return ""
 
     def __repr__(self):

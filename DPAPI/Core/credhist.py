@@ -129,7 +129,7 @@ class CredhistEntry(DataStruct):
             yourself. Instead, use the method provided by CredHistPool object.
         """
         if self.pwdhash is not None:
-            return "%s:md5_gen(1400)%s" % (self.userSID, self.pwdhash.encode('hex'))
+            return "%s:$dynamic_1400$%s" % (self.userSID, self.pwdhash.encode('hex'))
         return ""
 
     def __repr__(self):
