@@ -1,0 +1,24 @@
+OVERVIEW
+
+Those files are rules that can be added to John the Ripper to support several hashes
+format that OWADE can output.
+
+
+REQUIREMENTS
+
+Those files are made to work on an enhanced version of John the Ripper.
+You can get it at <http://www.openwall.com/john>
+
+The version we used to test it was john-1.7.9-jumbo5
+
+
+INSTALL
+
+Just add the correct include directive at the end of john.conf file.
+
+For example:
+$ tail -n 2 john.conf
+.include "/opt/dpapick/3rdparty/john-the-ripper/credhist.conf"
+.include "/opt/dpapick/3rdparty/john-the-ripper/skype.conf"
+$
+

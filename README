@@ -1,0 +1,63 @@
+OVERVIEW
+
+DPAPIck is a python toolkit to provide a platform-independant implementation
+of Microsoft's cryptography subsytem called DPAPI (Data Protection API).
+
+It can be used either as a library or as a standalone tool.
+
+It is also the first open-source tool that allows decryption of DPAPI
+structures in an offline way and, moreover, from another plateform than
+Windows.
+
+It is provided with some application probes that includes the built-in logic
+to retreive the corresponding secrets that are protected.
+
+To have more information or to contact us, go to our website:
+http://www.dpapick.com
+
+
+REQUIREMENTS
+
+This application has been developped and tested on python 2.7.
+
+M2Crypto is required to provide all the requireds algorithms. To obtain it,
+see: http://chandlerproject.org/bin/view/Projects/MeTooCrypto
+
+Probes and other tool may require other modules to be able to retreive
+information such as:
+  * python-sqlite3 for Google Chrome password database
+  * CFPropertyList for Apple Safari keychain.plist
+      see https://github.com/bencochran/CFPropertyList
+  * python-registry for low-level manipulation of hives
+      see https://github.com/williballenthin/python-registry
+  * pyASN1 for the RSA key pair manipulation
+      see http://pyasn1.sourceforge.net/
+
+We also recommend the use of MoonSols Windows Memory Toolkit to convert
+hibernation file to usable memory dumps and be able to extract credentials
+from it.
+For more information about Moonsols products, see <http://www.moonsols.com>
+
+
+AUTHOR
+
+DPAPIck is written by Jean-Michel Picod (jean-michel.picod@cassidian.com)
+with the help from Ivan Fontarensky (ivan.fontarensky@cassidian.com)
+who work for the Cyber Security Center of Cassidian, an EADS company,
+and Elie Bursztein (dpapi@elie.im)
+
+
+LICENSE
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation version 3 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

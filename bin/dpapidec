@@ -1,0 +1,87 @@
+#!/usr/bin/env python
+
+#############################################################################
+##                                                                         ##
+## This file is part of DPAPIck                                            ##
+## Windows DPAPI decryption & forensic toolkit                             ##
+##                                                                         ##
+##                                                                         ##
+## Copyright (C) 2010, 2011 Cassidian SAS. All rights reserved.            ##
+## This document is the property of Cassidian SAS, it may not be copied or ##
+## circulated without prior licence                                        ##
+##                                                                         ##
+##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##                                                                         ##
+## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
+##                                                                         ##
+#############################################################################
+
+from DPAPI.Core import *
+import sys, os, re
+from optparse import OptionParser
+
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option("--sid", metavar="SID", dest="sid")
+    parser.add_option("--entropy", metavar="ENTROPY", dest="entropy")
+    parser.add_option("--strong", metavar="PASSWORD", dest="strongpwd")
+    parser.add_option("--masterkey", metavar="DIRECTORY", dest="masterkeydir")
+    parser.add_option("--credhist", metavar="FILE", dest="credhist")
+    parser.add_option("--wordlist", metavar="FILE", dest="wordlist")
+    parser.add_option("--password", metavar="PASSWORD", dest="password")
+
+    (options, args) = parser.parse_args()
+
+    chf = credhist.CredHistFile(open(options.credhist).read())
+    chf.decryptWithPassword(options.password)
+
+    mkp = masterkey.MasterKeyPool()
+    for k in os.listdir(options.masterkeydir):
+        if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
+	    mkdata = open(os.path.join(options.masterkeydir, k)).read()
+	    mkp.addMasterKey(mkdata)
+
+    for b in args:
+	blob = blob.DPAPIBlob(open(b).read())
+
+        print "BLOB GUID=%r" % blob.guids
+        for key_guid in blob.guids:
+            
+            mks = mkp.getMasterKeys(key_guid)
+            if mks:
+                break
+        else:
+            print >>sys.stderr,"Master key not found for blob %s (guid=%r)" % (b,blob.guids)
+            continue
+        
+        print "Found %i keys:" % len(mks)
+        print "Attempting to unlock with password:"
+        for mk in mks:
+            mk.decryptWithPassword(options.sid,options.password)
+            if mk.decrypted:
+                break
+        else:
+            for mk in mks:
+                credent = chf.entries.get(mk.credhist.guid)
+                if credent is not None:
+                    print "--- cred entry matching:",mk.credhist.guid
+                    print repr(credent)
+                    if credent.pwdhash is None:
+                        print "Alas, cred entry was not decrypted"
+                    else:
+                        break
+            else:
+                print >>sys.stderr, "No credentials found to decrypt masterkeys"
+                continue
+
+            print "Attempt to decrypt masterkey:"
+            mk.decryptWithHash(str(credent.userSID),credent.pwdhash)
+
+        print repr(mk)
+
+        print "Attempt to decrypt blob:"
+        blob.decrypt(mk.get_key(), options.entropy, options.strongpwd)
+        print repr(blob)
+
+# vim:ts=4:expandtab:sw=4

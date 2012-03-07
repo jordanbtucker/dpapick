@@ -1,0 +1,14 @@
+//--------------------------------------
+//--- 010 Editor v3.2 Binary Template
+//
+// File:        DPAPI-blob.bt
+// Author:      Jean-Michel Picod
+// Revision:    1.0
+// Purpose:     Support DPAPI structs
+//--------------------------------------
+
+#include "DPAPI-blob-internal.bt"
+
+LittleEndian();
+
+DPAPIBlob b;
