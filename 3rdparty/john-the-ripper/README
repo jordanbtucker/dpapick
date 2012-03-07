@@ -9,17 +9,16 @@ REQUIREMENTS
 Those files are made to work on an enhanced version of John the Ripper.
 You can get it at <http://www.openwall.com/john>
 
-The version we used to test it was john-1.7.8-jumbo2 with extra patches taken from
-John's wiki: <http://openwall.info/wiki/john/patches>
+The version we used to test it was john-1.7.9-jumbo5
 
 
 INSTALL
 
-Just add the files at the end of john.conf file.
+Just add the correct include directive at the end of john.conf file.
 
 For example:
-$ cat credhist.conf >> $JOHN_HOME/john.conf
-
-(you must first set the JOHN_HOME environment variable to John's run folder)
-
+$ tail -n 2 john.conf
+.include "/opt/dpapick/3rdparty/john-the-ripper/credhist.conf"
+.include "/opt/dpapick/3rdparty/john-the-ripper/skype.conf"
+$
 
