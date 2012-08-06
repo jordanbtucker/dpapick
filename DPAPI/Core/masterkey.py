@@ -269,7 +269,7 @@ class MasterKeyPool:
         credfile is the full path to the CREDHIST file to add.
 
         """
-        f = open(credfile)
+        f = open(credfile, 'rb')
         self.addCredhist(sid, credhist.CredHistFile(f.read()))
         f.close()
 
@@ -284,7 +284,7 @@ class MasterKeyPool:
         for k in os.listdir(directory):
             if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
                 try:
-                    f = open(os.path.join(directory, k))
+                    f = open(os.path.join(directory, k), 'rb')
                     self.addMasterKey(f.read())
                     f.close()
                 except:
