@@ -33,17 +33,17 @@ if __name__ == "__main__":
 
     (options, args) = parser.parse_args()
 
-    chf = credhist.CredHistFile(open(options.credhist).read())
+    chf = credhist.CredHistFile(open(options.credhist, 'rb').read())
     chf.decryptWithPassword(options.password)
 
     mkp = masterkey.MasterKeyPool()
     for k in os.listdir(options.masterkeydir):
         if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
-	    mkdata = open(os.path.join(options.masterkeydir, k)).read()
+	    mkdata = open(os.path.join(options.masterkeydir, k), 'rb').read()
 	    mkp.addMasterKey(mkdata)
 
     for b in args:
-	blob = blob.DPAPIBlob(open(b).read())
+	blob = blob.DPAPIBlob(open(b, 'rb').read())
 
         print "BLOB GUID=%r" % blob.guids
         for key_guid in blob.guids:
