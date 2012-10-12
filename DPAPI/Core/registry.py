@@ -37,7 +37,7 @@ class Regedit:
         located under %WINDIR%\\system32\\config\\ directory.
 
         """
-        f = open(system)
+        f = open(system, 'rb')
         r = Registry.Registry(f)
         cs = r.open("Select").value("Current").value()
         r2 = r.open("ControlSet%03d\\Control\\Lsa" % cs)
@@ -62,7 +62,7 @@ class Regedit:
         self.get_syskey() if it has not been previously done.
 
         """
-        f = open(security)
+        f = open(security, 'rb')
         r = Registry.Registry(f)
         r2 = r.open("Policy\\PolSecretEncryptionKey")
         lsakey = r2.value("(default)").value()
@@ -82,7 +82,7 @@ class Regedit:
         """
         self.get_syskey(system)
         deskey = self.get_lsa_key(security)
-        f = open(security)
+        f = open(security, 'rb')
         r = Registry.Registry(f)
         r2 = r.open("Policy\\Secrets")
         for i in r2.subkeys():

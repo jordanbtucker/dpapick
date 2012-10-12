@@ -61,8 +61,8 @@ CryptoAlgo.add_algo(0x6603, name="DES3",    keyLength=192, IVLength=64,  blockLe
 CryptoAlgo.add_algo(0x6609, name="DES2",    keyLength=128, IVLength=64,  blockLength=64,  m2="des_ede_cbc")
 CryptoAlgo.add_algo(0x6611, name="AES",     keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
 CryptoAlgo.add_algo(0x660e, name="AES-128", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
-CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=192, blockLength=128, m2="aes_192_cbc")
-CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=256, blockLength=128, m2="aes_256_cbc")
+CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=128, blockLength=128, m2="aes_192_cbc")
+CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=128, blockLength=128, m2="aes_256_cbc")
 CryptoAlgo.add_algo(0x6601, name="DES",     keyLength=64,  IVLength=64,  blockLength=64,  m2="des_cbc")
 
 CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
