@@ -20,9 +20,9 @@ from distutils.core import setup
 
 setup(
     name = 'DPAPI',
-    version = '0.3',
+    version = '0.2',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
-    scripts = ['bin/dpapick'],
+    scripts = ['bin/dpapidec'],
 
     # Metadata
     author = 'Jean-Michel PICOD',
