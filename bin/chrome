@@ -83,7 +83,7 @@ if __name__ == '__main__':
     mkp.loadDirectory(options.masterkeydir)
 
     if options.credhist != None:
-        mkp.addCredhistFile(options.credhist)
+        mkp.addCredhistFile(options.sid, options.credhist)
 
     fields = [ 'origin_url', 'action_url', 'username_element',
                'username_value', 'password_element', 'password_value',
