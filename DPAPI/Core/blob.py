@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,18 +11,18 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-from crypto import *
-import hashlib
-from M2Crypto import *
-from eater import Eater, DataStruct
+import M2Crypto
+from DPAPI.Core import crypto
+from DPAPI.Core import eater
 
-class DPAPIBlob(DataStruct):
+
+class DPAPIBlob(eater.DataStruct):
     """Represents a DPAPI blob"""
 
     def __init__(self, raw=None):
@@ -32,7 +33,7 @@ class DPAPIBlob(DataStruct):
         self.cleartext = None
         self.decrypted = False
         self.crcComputed = None
-        DataStruct.__init__(self, raw)
+        eater.DataStruct.__init__(self, raw)
 
     def parse(self, data):
         """Parses the given data. May raise exceptions if incorrect data are
@@ -57,11 +58,11 @@ class DPAPIBlob(DataStruct):
 
         self.flags = data.eat("L")
         self.description = data.eat_length_and_string("L").decode("UTF-16LE").encode("utf-8")
-        self.cipherAlgo = CryptoAlgo( data.eat("L") )
+        self.cipherAlgo = crypto.CryptoAlgo( data.eat("L") )
         self.keyLen = data.eat("L")
         self.data = data.eat_length_and_string("L")
         self.strong = data.eat_length_and_string("L")
-        self.hashAlgo = CryptoAlgo(data.eat("L"))
+        self.hashAlgo = crypto.CryptoAlgo(data.eat("L"))
         self.hashLen = data.eat("L")
         self.salt = data.eat_length_and_string("L")
         self.cipherText = data.eat_length_and_string("L")
@@ -71,14 +72,13 @@ class DPAPIBlob(DataStruct):
 
         self.crc = data.eat_length_and_string("L")
 
-
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
         """Try to decrypt the blob. Returns True/False"""
-        sessionkey = CryptSessionKey(masterkey, self.data, self.hashAlgo.name,
-                                     entropy=entropy, strongPassword=strongPassword)
-        keys = CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
-        cipher = EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength], 
-                            "\x00"*self.cipherAlgo.ivLength, m2.decrypt, 0)
+        sessionkey = crypto.CryptSessionKey(masterkey, self.data, self.hashAlgo.name, entropy=entropy,
+                                            strongPassword=strongPassword)
+        keys = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
+        cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength],
+                                     "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
         cipher.set_padding(1)
         try:
             self.cleartext = cipher.update(self.cipherText) + cipher.final()
@@ -87,9 +87,8 @@ class DPAPIBlob(DataStruct):
             return
 
         ## check against provided HMAC
-        self.crcComputed = CryptSessionKey(masterkey, self.salt, self.hashAlgo.name,
-                                           entropy=entropy,
-                                           strongPassword=self.blob)
+        self.crcComputed = crypto.CryptSessionKey(masterkey, self.salt, self.hashAlgo.name, entropy=entropy,
+                                                  strongPassword=self.blob)
         self.decrypted = self.crcComputed == self.crc
 
     def __repr__(self):

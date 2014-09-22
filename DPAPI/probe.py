@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,17 +11,17 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-from DPAPI.Core.eater import DataStruct
-from DPAPI.Core import masterkey
 import hashlib
+from DPAPI.Core import eater
 
-class DPAPIProbe(DataStruct, object):
+
+class DPAPIProbe(eater.DataStruct):
     """This is the generic class for building DPAPIck probes.
         All probes must inherit this class.
 
@@ -34,7 +35,7 @@ class DPAPIProbe(DataStruct, object):
         self.dpapiblob = None
         self.cleartext = None
         self.entropy = None
-        DataStruct.__init__(self, raw)
+        eater.DataStruct.__init__(self, raw)
 
     def parse(self, data):
         """Parses raw data into structured data.
@@ -67,12 +68,10 @@ class DPAPIProbe(DataStruct, object):
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
                 mk.decryptWithKey(mkeypool.system.user)
-                if mk.decrypted == False:
+                if mk.decrypted is False:
                     mk.decryptWithKey(mkeypool.system.machine)
                 if mk.decrypted:
-                    self.dpapiblob.decrypt(mk.get_key(),
-                            self.entropy,
-                            k.get("strong", None))
+                    self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
                     if self.dpapiblob.decrypted:
                         self.postprocess(**k)
                         return True
@@ -98,9 +97,9 @@ class DPAPIProbe(DataStruct, object):
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
                 mk.decryptWithHash(sid, h)
-                if mk.decrypted == False:
+                if mk.decrypted is False:
                     ## try credhist if one is loaded
-                    if mkeypool.creds.get(sid) != None:
+                    if mkeypool.creds.get(sid) is not None:
                         mkeypool.creds[sid].decryptWithHash(h)
                         for cred in mkeypool.creds[sid].entries_list:
                             mk.decryptWithHash(sid, cred.pwdhash)
@@ -108,9 +107,7 @@ class DPAPIProbe(DataStruct, object):
                                 mkeypool.creds[sid].validate()
                                 break
                 if mk.decrypted:
-                    self.dpapiblob.decrypt(mk.get_key(),
-                            self.entropy,
-                            k.get("strong", None))
+                    self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
                     if self.dpapiblob.decrypted:
                         self.postprocess(**k)
                         return True
@@ -123,9 +120,7 @@ class DPAPIProbe(DataStruct, object):
             Return True/False upon decryption success/failure.
 
         """
-        return self.try_decrypt_with_hash(
-                hashlib.sha1(password.encode("UTF-16LE")).digest(),
-                mkeypool, sid, **k)
+        return self.try_decrypt_with_hash(hashlib.sha1(password.encode("UTF-16LE")).digest(), mkeypool, sid, **k)
 
 # vim:ts=4:expandtab:sw=4
 

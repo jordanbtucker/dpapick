@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,19 +11,22 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-from xml.etree.ElementTree import ElementTree
-from M2Crypto import EVP, m2
-from DPAPI.probe import DPAPIProbe
+from xml import etree
+import hashlib
+import struct
+import array
+import M2Crypto
+from DPAPI import probe
 from DPAPI.Core import blob
-import hashlib, struct, array
 
-class SkypeAccount(DPAPIProbe):
+
+class SkypeAccount(probe.DPAPIProbe):
 
     def parse(self, data):
         self.login = None
@@ -32,31 +36,29 @@ class SkypeAccount(DPAPIProbe):
 
     def preprocess(self, **k):
         self.login = k.get('login')
-        tree = ElementTree()
-        if k.get('xmlfile') != None:
+        tree = etree.ElementTree()
+        if k.get('xmlfile') is not None:
             tree.parse(k['xmlfile'])
         else:
             tree.fromstring(k['xml'])
         self.cred = tree.find(".//Account/Credentials2")
-        if self.cred == None:
+        if self.cred is None:
             self.cred = tree.find(".//Account/Credentials3")
-        if self.cred != None:
+        if self.cred is not None:
             self.cred = self.cred.text.decode('hex')
 
     def postprocess(self, **k):
-        if self.cred == None:
+        if self.cred is None:
             return
         ## use SHA-1 counter mode to expand the key
-        k = hashlib.sha1(struct.pack(">L", 0) +
-                self.dpapiblob.cleartext).digest()
-        k += hashlib.sha1(struct.pack(">L", 1) +
-                self.dpapiblob.cleartext).digest()
+        k = hashlib.sha1(struct.pack(">L", 0) + self.dpapiblob.cleartext).digest()
+        k += hashlib.sha1(struct.pack(">L", 1) + self.dpapiblob.cleartext).digest()
         ## use AES-256 CTR mode
-        ciph = EVP.Cipher("aes_256_ecb", k[:32], "", m2.encrypt, 0)
+        ciph = M2Crypto.EVP.Cipher("aes_256_ecb", k[:32], "", M2Crypto.encrypt, 0)
         arr = array.array("B")
         arr.fromstring(self.cred)
         for i in range(0, len(self.cred), 16):
-            buff = ciph.update("\0"*12 + struct.pack(">L", i>>4))
+            buff = ciph.update("\0"*12 + struct.pack(">L", i >> 4))
             for j in range(min(16, len(self.cred) - i)):
                 arr[i + j] ^= ord(buff[j])
         self.cleartext = arr.tostring().encode('hex')
@@ -71,7 +73,7 @@ class SkypeAccount(DPAPIProbe):
 
     def __repr__(self):
         s = ["Skype account"]
-        if self.login != None:
+        if self.login is not None:
             s.append("        login = %s" % self.login)
         s.append("        hash  = %s" % self.cleartext[:32])
         return "\n".join(s)

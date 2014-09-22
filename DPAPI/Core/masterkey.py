@@ -1,6 +1,7 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-#############################################################################
+# ############################################################################
 ##                                                                         ##
 ## This file is part of DPAPIck                                            ##
 ## Windows DPAPI decryption & forensic toolkit                             ##
@@ -10,32 +11,33 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-import string
-import crypto
 import hashlib
-import os, re
+import os
+import re
 from collections import defaultdict
-from eater import Eater, DataStruct
+
+from DPAPI.Core import eater
 from DPAPI.Core import credhist
+from DPAPI.Core import crypto
 
 
-class MasterKey(DataStruct):
+class MasterKey(eater.DataStruct):
     """This class represents a MasterKey block contained in a MasterKeyFile"""
 
     def __init__(self, raw=None):
         self.decrypted = False
         self.key = None
-        self.hmacSalt= None
+        self.hmacSalt = None
         self.hmac = None
         self.hmacComputed = None
-        DataStruct.__init__(self, raw)
-        
+        eater.DataStruct.__init__(self, raw)
+
     def parse(self, data):
         self.version = data.eat("L")
         self.iv = data.eat("16s")
@@ -49,14 +51,14 @@ class MasterKey(DataStruct):
         Simply computes the corresponding key then calls self.decryptWithKey()
 
         """
-        self.decryptWithKey(crypto.derivePwdHash(pwdhash, userSID, self.hashAlgo))
+        self.decryptWithKey(crypto.derivePwdHash(pwdhash, userSID))
 
     def decryptWithPassword(self, userSID, pwd):
         """Decrypts the masterkey with the given user's password and SID.
         Simply computes the corresponding key, then calls self.decryptWithKey()
 
         """
-        self.decryptWithKey(crypto.derivePassword(pwd, userSID, self.hashAlgo))
+        self.decryptWithKey(crypto.derivePassword(pwd, userSID))
 
     def decryptWithKey(self, pwdhash):
         """Decrypts the masterkey with the given encryption key. This function
@@ -70,67 +72,70 @@ class MasterKey(DataStruct):
         if self.decrypted:
             return
         ## Compute encryption key
-        cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.ciphertext, 
+        cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.ciphertext,
                                       pwdhash, self.iv, self.rounds)
         self.key = cleartxt[-64:]
         self.hmacSalt = cleartxt[:16]
-        self.hmac = cleartxt[16:16+self.hashAlgo.digestLength]
+        self.hmac = cleartxt[16:16 + self.hashAlgo.digestLength]
         self.hmacComputed = crypto.DPAPIHmac(self.hashAlgo, pwdhash,
                                              self.hmacSalt, self.key)
         self.decrypted = self.hmac == self.hmacComputed
 
     def __repr__(self):
-        s = ["Masterkey block"]
-        s.append("        cipher algo  = %s" % repr(self.cipherAlgo))
-        s.append("        hash algo    = %s" % repr(self.hashAlgo))
-        s.append("        rounds       = %i" % self.rounds)
-        s.append("        IV           = %s" % self.iv.encode("hex"))
+        s = ["Masterkey block",
+             "\tcipher algo  = %s" % repr(self.cipherAlgo),
+             "\thash algo    = %s" % repr(self.hashAlgo), "        rounds       = %i" % self.rounds,
+             "\tIV           = %s" % self.iv.encode("hex")]
         if self.key is not None:
-            s.append("        key          = %s" % self.key.encode("hex"))
-            s.append("        hmacSalt     = %s" % self.hmacSalt.encode("hex"))
-            s.append("        hmac         = %s" % self.hmac.encode("hex"))
-            s.append("        hmacComputed = %s" % self.hmacComputed.encode("hex"))
+            s.append("\tkey          = %s" % self.key.encode("hex"))
+            s.append("\thmacSalt     = %s" % self.hmacSalt.encode("hex"))
+            s.append("\thmac         = %s" % self.hmac.encode("hex"))
+            s.append("\thmacComputed = %s" % self.hmacComputed.encode("hex"))
         else:
-            s.append("        ciphertext   = %s" % self.ciphertext.encode("hex"))
+            s.append("\tciphertext   = %s" % self.ciphertext.encode("hex"))
         return "\n".join(s)
 
 
-class CredHist(DataStruct):
+class CredHist(eater.DataStruct):
     """This class represents a Credhist block contained in the MasterKeyFile"""
 
     def parse(self, data):
         self.magic = data.eat("L")
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
+
     def __repr__(self):
-        s = ["CredHist block"]
-        s.append("        magic\t= %(magic)d" % self.__dict__)
-        s.append("        guid\t= %s" % self.guid)
+        s = ["CredHist block",
+             "\tmagic = %d" % self.magic,
+             "\tguid  = %s" % self.guid]
         return "\n".join(s)
 
-class DomainKey(DataStruct):
+
+class DomainKey(eater.DataStruct):
     """This class represents a DomainKey block contained in the MasterKeyFile.
 
     Currently does nothing more than parsing. Work on Active Directory stuff is
     still on progress.
 
     """
+
     def parse(self, data):
         self.version = data.eat("L")
         self.secretLen = data.eat("L")
         self.accesscheckLen = data.eat("L")
-        self.guidKey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B") #data.eat("16s")
+        self.guidKey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")  #data.eat("16s")
         self.encryptedSecret = data.eat("%us" % self.secretLen)
         self.accessCheck = data.eat("%us" % self.accesscheckLen)
 
     def __repr__(self):
-        s = ["DomainKey block"]
-        s.append("        version\t= %x" % self.version)
-        s.append("        guid\t= %s" % self.guidKey)
-        s.append("        secret\t= %s" % self.encryptedSecret.encode("hex"))
-        s.append("        accessCheck\t= %s" % self.accessCheck.encode("hex"))
+        s = ["DomainKey block",
+             "\tversion     = %x" % self.version,
+             "\tguid        = %s" % self.guidKey,
+             "\tsecret      = %s" % self.encryptedSecret.encode("hex"),
+             "\taccessCheck = %s" % self.accessCheck.encode("hex")]
         return "\n".join(s)
 
-class MasterKeyFile(DataStruct):
+
+class MasterKeyFile(eater.DataStruct):
     """This class represents a masterkey file."""
 
     def __init__(self, raw=None):
@@ -139,8 +144,8 @@ class MasterKeyFile(DataStruct):
         self.credhist = None
         self.domainkey = None
         self.decrypted = False
-        DataStruct.__init__(self, raw)
-        
+        eater.DataStruct.__init__(self, raw)
+
     def parse(self, data):
         self.version = data.eat("L")
         data.eat("2L")
@@ -151,7 +156,7 @@ class MasterKeyFile(DataStruct):
         self.backupkeyLen = data.eat("Q")
         self.credhistLen = data.eat("Q")
         self.domainkeyLen = data.eat("Q")
-        
+
         if self.masterkeyLen > 0:
             self.masterkey = MasterKey()
             self.masterkey.parse(data.eat_sub(self.masterkeyLen))
@@ -184,7 +189,7 @@ class MasterKeyFile(DataStruct):
         if not self.backupkey.decrypted:
             self.backupkey.decryptWithKey(pwdhash)
         self.decrypted = self.masterkey.decrypted or self.backupkey.decrypted
-    
+
     def get_key(self):
         """Returns the first decrypted block between Masterkey and BackupKey.
         If none has been decrypted, returns the Masterkey block.
@@ -195,16 +200,16 @@ class MasterKeyFile(DataStruct):
         elif self.backupkey.decrypted:
             return self.backupkey.key
         return self.masterkey.key
-        
+
 
     def __repr__(self):
-        s = ["\n#### MasterKeyFile %s ####" % self.guid]
-        s.append("""        version   = %(version)#d
-        Flags     = %(flags)#x
-        MasterKey = %(masterkeyLen)d
-        BackupKey = %(backupkeyLen)d
-        CredHist  = %(credhistLen)d
-        DomainKey = %(domainkeyLen)d""" % self.__dict__)
+        s = ["\n#### MasterKeyFile %s ####" % self.guid,
+             "\tversion   = %#d" % self.version,
+             "\tFlags     = %#x" % self.flags,
+             "\tMasterKey = %d" % self.masterkeyLen,
+             "\tBackupKey = %d" % self.backupkeyLen,
+             "\tCredHist  = %d" % self.credhistLen,
+             "\tDomainKey = %d" % self.domainkeyLen]
         if self.masterkey:
             s.append("    + Master Key: %s" % repr(self.masterkey))
         if self.backupkey:
@@ -216,7 +221,7 @@ class MasterKeyFile(DataStruct):
         return "\n".join(s)
 
 
-class MasterKeyPool:
+class MasterKeyPool(object):
     """This class is the pivot for using DPAPIck. It manages all the DPAPI
     structures and contains all the decryption intelligence.
 
@@ -224,7 +229,7 @@ class MasterKeyPool:
 
     def __init__(self):
         self.keys = defaultdict(lambda: [])
-        self.creds = {}
+        self.creds = { }
         self.system = None
         self.passwords = []
 
@@ -243,7 +248,7 @@ class MasterKeyPool:
         guid is a string.
 
         """
-        return self.keys.get(guid,[])
+        return self.keys.get(guid, [])
 
     def addSystemCredential(self, blob):
         """Adds DPAPI_SYSTEM token to the pool.
@@ -312,13 +317,13 @@ class MasterKeyPool:
         return n
 
     def __repr__(self):
-        s  = [ "MasterKeyPool:" ]
-        s.append("Passwords:")
-        s.append(repr(self.passwords))
-        s.append("Keys:")
-        s.append(repr(self.keys.items()))
-        s.append(repr(self.system))
-        s.append("CredHist entries:")
+        s = ["MasterKeyPool:",
+             "Passwords:",
+             repr(self.passwords),
+             "Keys:",
+             repr(self.keys.items()),
+             repr(self.system),
+             "CredHist entries:"]
         for i in self.creds.keys():
             s.append("\tSID: %s" % i)
             s.append(repr(self.creds[i]))
