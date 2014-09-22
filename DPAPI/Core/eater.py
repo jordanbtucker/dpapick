@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,7 +11,7 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
@@ -18,7 +19,8 @@
 
 import struct
 
-class Eater:
+
+class Eater(object):
     """This class is a helper for parsing binary structures."""
 
     def __init__(self, raw, offset=0, end=None, endianness="<"):
@@ -38,7 +40,7 @@ class Eater:
         Returns a tuple of the format string and the corresponding data size.
 
         """
-        if fmt[0] not in ["<",">","!","@"]:
+        if fmt[0] not in ["<", ">", "!", "@"]:
             fmt = self.endianness+fmt
         return fmt, struct.calcsize(fmt)
 
@@ -48,7 +50,7 @@ class Eater:
         Returns an array of elements or just one element depending on fmt.
 
         """
-        fmt,sz = self.prepare_fmt(fmt)
+        fmt, sz = self.prepare_fmt(fmt)
         v = struct.unpack_from(fmt, self.raw, self.ofs)
         if len(v) == 1:
             v = v[0]
@@ -60,7 +62,7 @@ class Eater:
         Returns an array of elements or just one element depending on fmt.
 
         """
-        fmt,sz = self.prepare_fmt(fmt)
+        fmt, sz = self.prepare_fmt(fmt)
         v = struct.unpack_from(fmt, self.raw, self.ofs)
         if len(v) == 1:
             v = v[0]
@@ -81,7 +83,7 @@ class Eater:
 
     def pop(self, fmt):
         """Eats a structure represented by fmt from the end of raw data"""
-        fmt,sz = self.prepare_fmt(fmt)
+        fmt, sz = self.prepare_fmt(fmt)
         self.end -= sz
         v = struct.unpack_from(fmt, self.raw, self.end)
         if len(v) == 1:
@@ -106,18 +108,21 @@ class Eater:
 
     def eat_sub(self, length):
         """Eats a sub-structure that is contained in the next length bytes"""
-        sub= self.__class__(self.raw[self.ofs:self.ofs+length], 
-                            endianness = self.endianness)
+        sub = self.__class__(self.raw[self.ofs:self.ofs+length], endianness=self.endianness)
         self.ofs += length
         return sub
 
     def __nonzero__(self):
         return self.ofs < self.end
 
-class DataStruct:
+
+class DataStruct(object):
     """Don't use this class unless you know what you are doing!"""
 
     def __init__(self, raw=None):
         if raw is not None:
-            self.parse( Eater(raw, endianness="<") )
+            self.parse(Eater(raw, endianness="<"))
+
+    def parse(self, eater_obj):
+        raise NotImplementedError("This function must be implemented in subclasses")
 

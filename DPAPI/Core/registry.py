@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,7 +11,7 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
@@ -19,7 +20,8 @@
 from Registry import Registry
 from DPAPI.Core import crypto
 
-class Regedit:
+
+class Regedit(object):
     """This class provides several functions to handle registry extraction
     stuff.
 
@@ -32,7 +34,7 @@ class Regedit:
 
     def get_syskey(self, system):
         """Returns the syskey value after decryption from the registry values.
-        
+
         system argument is the full path to the SYSTEM registry file (usually
         located under %WINDIR%\\system32\\config\\ directory.
 
@@ -41,12 +43,14 @@ class Regedit:
         r = Registry.Registry(f)
         cs = r.open("Select").value("Current").value()
         r2 = r.open("ControlSet%03d\\Control\\Lsa" % cs)
-        syskey = reduce(lambda x,y: x+y, map(
-            lambda x: r2.subkey(x)._nkrecord.classname(), [ 'JD', 'Skew1',
-                'GBG', 'Data' ])).decode("UTF-16LE").decode('hex')
+        syskey = reduce(
+            lambda x, y: x + y,
+            map(lambda x: r2.subkey(x)._nkrecord.classname(), ['JD', 'Skew1', 'GBG', 'Data'])
+        ).decode("UTF-16LE").decode('hex')
+
         f.close()
         self.syskey = ''
-        transforms = [ 8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7 ]
+        transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
         for i in xrange(len(syskey)):
             self.syskey += syskey[transforms[i]]
         return self.syskey

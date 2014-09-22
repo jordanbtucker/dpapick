@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,39 +11,40 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-import array, struct, hashlib
-from DPAPI.probe import DPAPIProbe
+import hashlib
+from DPAPI import probe
 from DPAPI.Core import blob
-from DPAPI.Core.eater import Eater, DataStruct
+from DPAPI.Core import eater
 
-class IE7Autocomplete(DPAPIProbe):
-    class IE7Secret(DataStruct):
+
+class IE7Autocomplete(probe.DPAPIProbe):
+    class IE7Secret(eater.DataStruct):
         def __init__(self, raw=None):
             self.secrets = []
-            DataStruct.__init__(self, raw)
+            eater.DataStruct.__init__(self, raw)
 
         def parse(self, data):
-            data.eat("L") ## header size
-            data.eat("L") ## secret info size
-            data.eat("L") ## secret size
-            data.eat("L") ## magic
-            data.eat("L") ## size (24)
-            n = data.eat("L") ## total secrets
-            data.eat("L") ## unknown
-            data.eat("L") ## id
-            data.eat("L") ## unknown
+            data.eat("L")  # header size
+            data.eat("L")  # secret info size
+            data.eat("L")  # secret size
+            data.eat("L")  # magic
+            data.eat("L")  # size (24)
+            n = data.eat("L")  # total secrets
+            data.eat("L")  # unknown
+            data.eat("L")  # id
+            data.eat("L")  # unknown
             l = []
             off = []
             for i in range(n):
-                off.append(data.eat("L")) ## offset
-                data.eat_string(8) ## unique id
-                l.append(2 * data.eat("L")) ## length
+                off.append(data.eat("L"))  # offset
+                data.eat_string(8)  # unique id
+                l.append(2 * data.eat("L"))  # length
             sec = data.remain()
             for i in range(n):
                 self.secrets.append(sec[off[i]:off[i]+l[i]].decode('UTF-16LE'))
@@ -52,7 +54,7 @@ class IE7Autocomplete(DPAPIProbe):
             s.append("%s" % repr(self.secrets))
             return "\n".join(s)
 
-    class IE7Entry(DPAPIProbe):
+    class IE7Entry(probe.DPAPIProbe):
         def parse(self, data):
             self.dpapiblob = blob.DPAPIBlob(data.remain())
             self.cleartext = None
@@ -101,9 +103,8 @@ class IE7Autocomplete(DPAPIProbe):
         self.preprocess(**k)
         rv = True
         for e in self.entries.keys():
-            if self._dicurls.get(e) != None:
-                if not self.entries[e].try_decrypt_with_hash(h, mkeypool,
-                        sid, entropy=self._dicurls[e]):
+            if self._dicurls.get(e) is not None:
+                if not self.entries[e].try_decrypt_with_hash(h, mkeypool, sid, entropy=self._dicurls[e]):
                     rv = False
         return rv
 
@@ -113,7 +114,7 @@ class IE7Autocomplete(DPAPIProbe):
     def __repr__(self):
         s = ["Internet Explorer 7+ autocomplete"]
         for i in self.entries.keys():
-            s.append("-"*50)
+            s.append("-" * 50)
             s.append("    %r" % self.entries[i])
         return "\n".join(s)
 

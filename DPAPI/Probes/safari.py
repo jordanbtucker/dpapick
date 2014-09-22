@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #############################################################################
 ##                                                                         ##
@@ -10,20 +11,23 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
 #############################################################################
 
-import array, struct
+import struct
 import CFPropertyList
-from DPAPI.probe import DPAPIProbe
+from DPAPI import probe
 from DPAPI.Core import blob
 
-class SafariPassword(DPAPIProbe):
 
-    _entropy = "1DACA8F8D3B8483E487D3E0A6207DD26E6678103E7B213A5B079EE4F0F4115ED7B148CE54B460DC18EFED6E72775068B4900DC0F30A09EFD0985F1C8AA75C108057901E297D8AF8038600B710E6853772F0F61F61D8E8F5CB23D2174404BB5066EAB7ABD8BA97E328F6E0624D929A4A5BE2623FDEEF14C0F745E58FB9174EF91636F6D2E6170706C652E536166617269"
+class SafariPassword(probe.DPAPIProbe):
+
+    _entropy = ("1DACA8F8D3B8483E487D3E0A6207DD26E6678103E7B213A5B079EE4F0F4115ED7B148CE54B460DC18EFED6E72775068B"
+                "4900DC0F30A09EFD0985F1C8AA75C108057901E297D8AF8038600B710E6853772F0F61F61D8E8F5CB23D2174404BB506"
+                "6EAB7ABD8BA97E328F6E0624D929A4A5BE2623FDEEF14C0F745E58FB9174EF91636F6D2E6170706C652E536166617269")
 
     def parse(self, data):
         self.dpapiblob = blob.DPAPIBlob(data.remain())
@@ -39,14 +43,15 @@ class SafariPassword(DPAPIProbe):
 
     def __repr__(self):
         s = ["Safari Password"]
-        if self.dpapiblob != None and self.dpapiblob.decrypted:
+        if self.dpapiblob is not None and self.dpapiblob.decrypted:
             s.append("        password = %s" % self.cleartext)
-        if self.entropy != None:
+        if self.entropy is not None:
             s.append("        entropy  = %s" % self.entropy.encode("hex"))
         s.append("    %r" % self.dpapiblob)
         return "\n".join(s)
 
-class SafariFile(DPAPIProbe):
+
+class SafariFile(probe.DPAPIProbe):
     def parse(self, data):
         self.entries = None
 

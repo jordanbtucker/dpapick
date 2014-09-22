@@ -32,5 +32,5 @@ setup(
     license='GPLv3',
     # keywords = '',
     url='http://www.dpapick.com',
-    requires=['M2Crypto', 'python-registry'],
+    requires=['M2Crypto', 'registry'],
 )
