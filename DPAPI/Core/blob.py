@@ -74,7 +74,7 @@ class DPAPIBlob(eater.DataStruct):
 
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
         """Try to decrypt the blob. Returns True/False"""
-        sessionkey = crypto.CryptSessionKey(masterkey, self.data, self.hashAlgo.name, entropy=entropy,
+        sessionkey = crypto.CryptSessionKey(masterkey, self.data, self.hashAlgo, entropy=entropy,
                                             strongPassword=strongPassword)
         keys = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
         cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength],
@@ -87,7 +87,7 @@ class DPAPIBlob(eater.DataStruct):
             return False
 
         ## check against provided HMAC
-        self.crcComputed = crypto.CryptSessionKey(masterkey, self.salt, self.hashAlgo.name, entropy=entropy,
+        self.crcComputed = crypto.CryptSessionKey(masterkey, self.salt, self.hashAlgo, entropy=entropy,
                                                   strongPassword=self.blob)
         self.decrypted = self.crcComputed == self.crc
         return self.decrypted
