@@ -59,35 +59,12 @@ class CryptoAlgo(object):
 
     def do_fixup_key(self, key):
         try:
-            return self.keyFixup.__call__(key)
+            return self.algo.keyFixup.__call__(key)
         except AttributeError:
             return key
 
     def __repr__(self):
         return "%s [%#x]" % (self.algo.name, self.algnum)
-
-
-CryptoAlgo.add_algo(0x6603, name="DES3", keyLength=192, IVLength=64, blockLength=64, m2="des_ede3_cbc",
-                    keyFixup="des_set_odd_parity")
-CryptoAlgo.add_algo(0x6609, name="DES2", keyLength=128, IVLength=64, blockLength=64, m2="des_ede_cbc",
-                    keyFixup="des_set_odd_parity")
-CryptoAlgo.add_algo(0x6611, name="AES", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
-CryptoAlgo.add_algo(0x660e, name="AES-128", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
-CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=128, blockLength=128, m2="aes_192_cbc")
-CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=128, blockLength=128, m2="aes_256_cbc")
-CryptoAlgo.add_algo(0x6601, name="DES", keyLength=64, IVLength=64, blockLength=64, m2="des_cbc",
-                    keyFixup="des_set_odd_parity")
-
-CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
-
-CryptoAlgo.add_algo(0x8001, name="md2", digestLength=128, blockLength=128)
-CryptoAlgo.add_algo(0x8002, name="md4", digestLength=128, blockLength=512)
-CryptoAlgo.add_algo(0x8003, name="md5", digestLength=128, blockLength=512)
-
-CryptoAlgo.add_algo(0x8004, name="sha1", digestLength=160, blockLength=512)
-CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
-CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
-CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
 def des_set_odd_parity(key):
@@ -113,6 +90,29 @@ def des_set_odd_parity(key):
     for i, v in enumerate(tmp):
         tmp[i] = _lut[v]
     return tmp.tostring()
+
+
+CryptoAlgo.add_algo(0x6603, name="DES3", keyLength=192, IVLength=64, blockLength=64, m2="des_ede3_cbc",
+                    keyFixup=des_set_odd_parity)
+CryptoAlgo.add_algo(0x6609, name="DES2", keyLength=128, IVLength=64, blockLength=64, m2="des_ede_cbc",
+                    keyFixup=des_set_odd_parity)
+CryptoAlgo.add_algo(0x6611, name="AES", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
+CryptoAlgo.add_algo(0x660e, name="AES-128", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
+CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=128, blockLength=128, m2="aes_192_cbc")
+CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=128, blockLength=128, m2="aes_256_cbc")
+CryptoAlgo.add_algo(0x6601, name="DES", keyLength=64, IVLength=64, blockLength=64, m2="des_cbc",
+                    keyFixup=des_set_odd_parity)
+
+CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
+
+CryptoAlgo.add_algo(0x8001, name="md2", digestLength=128, blockLength=128)
+CryptoAlgo.add_algo(0x8002, name="md4", digestLength=128, blockLength=512)
+CryptoAlgo.add_algo(0x8003, name="md5", digestLength=128, blockLength=512)
+
+CryptoAlgo.add_algo(0x8004, name="sha1", digestLength=160, blockLength=512)
+CryptoAlgo.add_algo(0x800c, name="sha256", digestLength=256, blockLength=512)
+CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
+CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
 def CryptSessionKeyXP(masterkey, nonce, hashAlgo, entropy=None, strongPassword=None):
@@ -264,7 +264,7 @@ def derivePassword(userPwd, userSID):
 
 def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
     """Internal use. Decrypts data stored in DPAPI structures."""
-    hname = { "HMAC": "sha1" }.get(hashAlgo.name, hashAlgo.name)
+    hname = {"HMAC": "sha1"}.get(hashAlgo.name, hashAlgo.name)
     derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
     key, iv = derived[:cipherAlgo.keyLength], derived[cipherAlgo.keyLength:]
     key = key[:cipherAlgo.keyLength]
