@@ -211,8 +211,8 @@ class CryptoTest(unittest.TestCase):
             "4d3090ba78ece4703f190d4a0f22cd1b"
             "4cf224685eb317c6617f12368fd5197e").decode("hex")
         c = crypto.CryptoAlgo(0x6610)
-
-        self.assertEquals(crypto.CryptDeriveKey(h, c, 'sha512'), h)
+        algo = crypto.CryptoAlgo(0x800e)
+        self.assertEquals(crypto.CryptDeriveKey(h, c, algo), h)
 
     def test_CryptDeriveKeyXP(self):
         h = "9e0ee9a096bcd43c315a211dc7fdb1fd1a01cbec".decode("hex")
@@ -220,8 +220,9 @@ class CryptoTest(unittest.TestCase):
         r = ("e41a0d8b93243370b3722699588a83b2"
             "28b533d82e609a6932bb2f9899be9a4a"
             "f06a5a420963de45").decode("hex")
+        algo = crypto.CryptoAlgo(0x8004)
 
-        self.assertEquals(crypto.CryptDeriveKey(h, c), r)
+        self.assertEquals(crypto.CryptDeriveKey(h, c, algo), r)
 
     def test_decrypt_lsa_key(self):
         pass

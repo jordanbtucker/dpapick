@@ -144,16 +144,16 @@ def CryptSessionKey(masterkey, nonce, hashAlgo, entropy=None, strongPassword=Non
     return digest.digest()
 
 
-def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
+def CryptDeriveKey(h, cipherAlgo, hashAlgo):
     """Internal use. Mimics the corresponding native Microsoft function"""
-    _dg = getattr(hashlib, digest)
-    if len(h) > 64:
+    _dg = getattr(hashlib, hashAlgo.name)
+    if len(h) > hashAlgo.blockSize:
         h = _dg(h).digest()
     if len(h) >= cipherAlgo.keyLength:
         return h
-    h += "\0"*64
-    ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
-    opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
+    h += "\x00" * hashAlgo.blockSize
+    ipad = "".join(chr(ord(h[i])^0x36) for i in range(hashAlgo.blockSize))
+    opad = "".join(chr(ord(h[i])^0x5c) for i in range(hashAlgo.blockSize))
     k = _dg(ipad).digest() + _dg(opad).digest()
     k = cipherAlgo.do_fixup_key(k)
     return k

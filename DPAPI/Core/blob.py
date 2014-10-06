@@ -76,7 +76,7 @@ class DPAPIBlob(eater.DataStruct):
         """Try to decrypt the blob. Returns True/False"""
         sessionkey = crypto.CryptSessionKey(masterkey, self.data, self.hashAlgo, entropy=entropy,
                                             strongPassword=strongPassword)
-        keys = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
+        keys = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo)
         cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength],
                                      "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
         cipher.set_padding(1)
