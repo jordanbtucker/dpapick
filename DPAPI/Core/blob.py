@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#############################################################################
-##                                                                         ##
+# ############################################################################
+# #                                                                         ##
 ## This file is part of DPAPIck                                            ##
 ## Windows DPAPI decryption & forensic toolkit                             ##
 ##                                                                         ##
@@ -58,7 +58,7 @@ class DPAPIBlob(eater.DataStruct):
 
         self.flags = data.eat("L")
         self.description = data.eat_length_and_string("L").decode("UTF-16LE").encode("utf-8")
-        self.cipherAlgo = crypto.CryptoAlgo( data.eat("L") )
+        self.cipherAlgo = crypto.CryptoAlgo(data.eat("L"))
         self.keyLen = data.eat("L")
         self.data = data.eat_length_and_string("L")
         self.strong = data.eat_length_and_string("L")
@@ -73,34 +73,35 @@ class DPAPIBlob(eater.DataStruct):
         self.crc = data.eat_length_and_string("L")
 
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
-        """Try to decrypt the blob. Returns True/False"""
-        sessionkey = crypto.CryptSessionKey(masterkey, self.data, self.hashAlgo, entropy=entropy,
-                                            strongPassword=strongPassword)
-        keys = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo)
-        cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, keys[:self.cipherAlgo.keyLength],
-                                     "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
-        cipher.set_padding(1)
-        try:
-            self.cleartext = cipher.update(self.cipherText) + cipher.final()
-        except:
-            self.decrypted = False
-            return False
-
-        ## check against provided HMAC
-        self.crcComputed = crypto.CryptSessionKey(masterkey, self.salt, self.hashAlgo, entropy=entropy,
-                                                  strongPassword=self.blob)
-        self.decrypted = self.crcComputed == self.crc
+        """Try to decrypt the blob. Returns True/False
+        :rtype : bool
+        :param masterkey: decrypted masterkey value
+        :param entropy: optional entropy for decrypting the blob
+        :param strongPassword: optional password for decrypting the blob
+        """
+        for algo in [crypto.CryptDeriveKeyXP, crypto.CryptDeriveKeyWin7]:
+            try:
+                key = algo(masterkey, self.data, self.hashAlgo, entropy, strongPassword)
+                cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, key[:self.cipherAlgo.keyLength],
+                                             "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
+                cipher.set_padding(1)
+                self.cleartext = cipher.update(self.cipherText) + cipher.final()
+                # check against provided HMAC
+                k = algo(masterkey, self.salt, self.hashAlgo, entropy=entropy, strongPassword=self.blob)
+                self.decrypted = self.crcComputed == self.crc
+            except:
+                self.decrypted = False
         return self.decrypted
 
     def __repr__(self):
         s = ["DPAPI BLOB"]
         s.append("\n".join(["\tversion     = %(version)d",
-            "\tprovider    = %(provider)s",
-            "\tmkey        = %(guids)r",
-            "\tflags       = %(flags)#x",
-            "\tdescr       = %(description)s",
-            "\tcipherAlgo  = %(cipherAlgo)r",
-            "\thashAlgo    = %(hashAlgo)r"]) % self.__dict__)
+                            "\tprovider    = %(provider)s",
+                            "\tmkey        = %(guids)r",
+                            "\tflags       = %(flags)#x",
+                            "\tdescr       = %(description)s",
+                            "\tcipherAlgo  = %(cipherAlgo)r",
+                            "\thashAlgo    = %(hashAlgo)r"]) % self.__dict__)
         s.append("\tdata        = %s" % self.data.encode('hex'))
         s.append("\tsalt        = %s" % self.salt.encode('hex'))
         s.append("\tcipher      = %s" % self.cipherText.encode('hex'))
