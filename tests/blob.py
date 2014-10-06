@@ -133,8 +133,25 @@ class BlobXPEntropyTest(unittest.TestCase):
 
 class BlobWin8SimpleTest(unittest.TestCase):
     def setUp(self):
-        self.raw = ("").decode("hex")
-        self.mkey = ("").decode("hex")
+        self.raw = ("01000000d08c9ddf0115d1118c7a00c0"
+            "4fc297eb010000003fb376ba974b974e"
+            "96037865fb972cec0000000002000000"
+            "00001066000000010000200000009798"
+            "683005ff678f507036b44bcbbcfe1501"
+            "15346bf67bd75ad73b42ce6331bf0000"
+            "00000e800000000200002000000040da"
+            "71bec41e2cf971d270977099e1d34030"
+            "f0875de802967769f7b4906cbc951000"
+            "00005ccee1467028df028177bda3c9c3"
+            "40574000000045fb9275a0e852ed4b9f"
+            "2e34ec6100bb2d3bd5225da37bccb73b"
+            "fb89b4073dc215840c8beeb728201ab6"
+            "9a41945c944cf6ae645d2e69d00b752c"
+            "a1552b42ed3d").decode("hex")
+        self.mkey = ("c942b584a88a36f3ce8abe61a62d4036"
+            "49dfdd8fd9b256a4a7ff64bfe2b60df8"
+            "cb563be71d0d65f8be03ebdd76b4dba1"
+            "68a9e3883fee758d2c4aeef040571cc2").decode("hex")
         self.blob = blob.DPAPIBlob(self.raw)
 
     def test_parsing(self):
@@ -142,13 +159,13 @@ class BlobWin8SimpleTest(unittest.TestCase):
         self.assertEqual(self.blob.provider, "df9d8cd0-1501-11d1-8c7a-00c04fc297eb")
         self.assertEqual(self.blob.cipherAlgo.algnum, 0x6610)
         self.assertEqual(self.blob.hashAlgo.algnum, 0x800e)
-        self.assertEqual(self.blob.description, "DPAPIck simple blob generator\x00")
+        self.assertEqual(self.blob.description, "\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 16)
-        self.assertEqual(len(self.blob.salt), 16)
+        self.assertEqual(len(self.blob.data), 32)
+        self.assertEqual(len(self.blob.salt), 32)
         self.assertEqual(len(self.blob.strong), 0)
-        self.assertEqual(len(self.blob.cipherText), 24)
-        self.assertEqual(len(self.blob.crc), 20)
+        self.assertEqual(len(self.blob.cipherText), 16)
+        self.assertEqual(len(self.blob.crc), 64)
 
     def test_decrypt_bad_key(self):
         self.blob.decrypt("", None, None)
@@ -170,40 +187,61 @@ class BlobWin8SimpleTest(unittest.TestCase):
 
 class BlobWin8EntropyTest(unittest.TestCase):
     def setUp(self):
-        self.raw = ("").decode("hex")
-        self.mkey = ("").decode("hex")
+        self.raw = ("01000000d08c9ddf0115d1118c7a00c0"
+            "4fc297eb010000003fb376ba974b974e"
+            "96037865fb972cec0000000044000000"
+            "7000770064003a006600750066006600"
+            "61003b00200065006e00740072006f00"
+            "70007900280061007300630069006900"
+            "29003d005500700054006f0041007000"
+            "70000000106600000001000020000000"
+            "600ed99a7cba8250b56e6571a852a435"
+            "ba30522905fc6f297c2f5a31d6b7fa45"
+            "000000000e8000000002000020000000"
+            "dc2539884092c76194a57bbf090e94dc"
+            "ec850a23f03afcef723de96b6b1a4638"
+            "10000000d747986bfd422553f30c8fb1"
+            "265e1365400000003c4236133cc43d41"
+            "6ed650106e0f980de4c58e5db4513ea0"
+            "605207b0835ac69c2c95f3b5b26511c4"
+            "4543a996b390952689843a20dbbaa209"
+            "e6440b74ff02c49c").decode("hex")
+        self.mkey = ("c942b584a88a36f3ce8abe61a62d4036"
+            "49dfdd8fd9b256a4a7ff64bfe2b60df8"
+            "cb563be71d0d65f8be03ebdd76b4dba1"
+            "68a9e3883fee758d2c4aeef040571cc2").decode("hex")
         self.blob = blob.DPAPIBlob(self.raw)
-        self.entropy = "toto123"
+        self.entropy = "UpToApp\x00"
 
     def test_parsing(self):
         self.assertEqual(self.blob.version, 1)
         self.assertEqual(self.blob.provider, "df9d8cd0-1501-11d1-8c7a-00c04fc297eb")
         self.assertEqual(self.blob.cipherAlgo.algnum, 0x6610)
         self.assertEqual(self.blob.hashAlgo.algnum, 0x800e)
-        self.assertEqual(self.blob.description, "DPAPIck simple blob generator\x00")
+        self.assertEqual(self.blob.description, "pwd:fuffa; entropy(ascii)=UpToApp\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 16)
-        self.assertEqual(len(self.blob.salt), 16)
+        self.assertEqual(len(self.blob.data), 32)
+        self.assertEqual(len(self.blob.salt), 32)
         self.assertEqual(len(self.blob.strong), 0)
-        self.assertEqual(len(self.blob.cipherText), 32)
-        self.assertEqual(len(self.blob.crc), 20)
+        self.assertEqual(len(self.blob.cipherText), 16)
+        self.assertEqual(len(self.blob.crc), 64)
 
     def test_decrypt_bad_key(self):
-        self.blob.decrypt("", None, None)
+        self.blob.decrypt("")
 
         self.assertFalse(self.blob.decrypted)
 
     def test_decrypt_good_key_bad_entropy(self):
-        self.blob.decrypt(self.mkey, None, None)
+        self.blob.decrypt(self.mkey)
 
         self.assertFalse(self.blob.decrypted)
 
     def test_decrypt_good_key_good_entropy(self):
-        self.blob.decrypt(self.mkey, self.entropy, None)
+        self.blob.decrypt(self.mkey, self.entropy)
 
         self.assertTrue(self.blob.decrypted)
         self.assertEqual(self.blob.crc, self.blob.crcComputed)
-        self.assertEqual(self.blob.cleartext, "This entropy was not faked")
+        self.assertEqual(self.blob.cleartext, "UpToApp\x00")
 
 
 if __name__ == "__main__":
