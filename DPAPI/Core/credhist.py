@@ -67,8 +67,10 @@ class CredSystem(eater.DataStruct):
 
     def __repr__(self):
         s = ["DPAPI_SYSTEM:"]
-        s.append("\tUser Credential   : %s" % self.user.encode('hex'))
-        s.append("\tMachine Credential: %s" % self.machine.encode('hex'))
+        if self.user is not None:
+            s.append("\tUser Credential   : %s" % self.user.encode('hex'))
+        if self.machine is not None:
+            s.append("\tMachine Credential: %s" % self.machine.encode('hex'))
         return "\n".join(s)
 
 
@@ -105,8 +107,9 @@ class CredhistEntry(eater.DataStruct):
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted,
                                       enckey, self.iv, self.rounds)
         self.pwdhash = cleartxt[:self.dataLen]
-        self.hmac = cleartxt[self.dataLen:self.dataLen + self.hmacLen]
-        ##TODO: Compute & Verify HMAC. Dunno if it's possible...
+        self.ntlm = cleartxt[self.dataLen:self.dataLen + self.hmacLen].rstrip("\x00")
+        if len(self.ntlm) != 16:
+            self.ntlm = None
 
     def decryptWithHash(self, pwdhash):
         """Decrypts this credhist entry with the given user's password hash.
@@ -131,9 +134,12 @@ class CredhistEntry(eater.DataStruct):
             Unless you know what you are doing, you shall not call this function
             yourself. Instead, use the method provided by CredHistPool object.
         """
+        rv = []
         if self.pwdhash is not None:
-            return "%s:$dynamic_1400$%s" % (self.userSID, self.pwdhash.encode('hex'))
-        return ""
+            rv.append("%s:$dynamic_1400$%s" % (self.userSID, self.pwdhash.encode('hex')))
+        if self.ntlm is not None:
+            rv.append("%s:$NT$%s" % (self.userSID, self.ntlm.encode('hex')))
+        return "\n".join(rv)
 
     def __repr__(self):
         s = ["CredHist entry",
@@ -148,8 +154,8 @@ class CredhistEntry(eater.DataStruct):
              "\tiv       = %s" % self.iv.encode("hex")]
         if self.pwdhash is not None:
             s.append("\tpwdhash  = %s" % self.pwdhash.encode("hex"))
-        if self.hmac is not None:
-            s.append("\thmac     = %s" % self.hmac.encode("hex"))
+        if self.ntlm is not None:
+            s.append("\tNTLM     = %s" % self.ntlm.encode("hex"))
         return "\n".join(s)
 
 
@@ -159,7 +165,7 @@ class CredHistFile(eater.DataStruct):
     succeeded or not. To circumvent that and optimize a little bit crypto
     operations, once a credhist entry successfully decrypts a masterkey, the
     whole CredHistFile is flagged as valid. Then, no further decryption occurs.
-    
+
     """
 
     def __init__(self, raw=None):
@@ -188,7 +194,7 @@ class CredHistFile(eater.DataStruct):
     def validate(self):
         """Simply flags a file as successfully decrypted. See the class
         documentation for information.
-        
+
         """
         self.valid = True
 

@@ -301,8 +301,8 @@ class MasterKeyPool(object):
         else:
             return cPickle.dumps(self)
 
-    @classmethod
-    def unpickle(class, data=None, filename=None):
+    @staticmethod
+    def unpickle(data=None, filename=None):
         if data is not None:
             return cPickle.loads(data)
         if filename is not None:

@@ -56,17 +56,23 @@ class CryptoAlgo(object):
     blockSize = property(lambda self: self.algo.blockLength/8)
     digestLength = property(lambda self: self.algo.digestLength/8)
 
+    def do_fixup_key(self, key):
+        try:
+            return self.keyFixup.__call__(key)
+        except:
+            return key
+
     def __repr__(self):
         return "%s [%#x]" % (self.algo.name, self.algnum)
 
 
-CryptoAlgo.add_algo(0x6603, name="DES3",    keyLength=192, IVLength=64,  blockLength=64,  m2="des_ede3_cbc")
-CryptoAlgo.add_algo(0x6609, name="DES2",    keyLength=128, IVLength=64,  blockLength=64,  m2="des_ede_cbc")
+CryptoAlgo.add_algo(0x6603, name="DES3",    keyLength=192, IVLength=64,  blockLength=64,  m2="des_ede3_cbc", keyFixup="des_set_odd_parity")
+CryptoAlgo.add_algo(0x6609, name="DES2",    keyLength=128, IVLength=64,  blockLength=64,  m2="des_ede_cbc", keyFixup="des_set_odd_parity")
 CryptoAlgo.add_algo(0x6611, name="AES",     keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
 CryptoAlgo.add_algo(0x660e, name="AES-128", keyLength=128, IVLength=128, blockLength=128, m2="aes_128_cbc")
-CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=192, blockLength=128, m2="aes_192_cbc")
-CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=256, blockLength=128, m2="aes_256_cbc")
-CryptoAlgo.add_algo(0x6601, name="DES",     keyLength=64,  IVLength=64,  blockLength=64,  m2="des_cbc")
+CryptoAlgo.add_algo(0x660f, name="AES-192", keyLength=192, IVLength=128, blockLength=128, m2="aes_192_cbc")
+CryptoAlgo.add_algo(0x6610, name="AES-256", keyLength=256, IVLength=128, blockLength=128, m2="aes_256_cbc")
+CryptoAlgo.add_algo(0x6601, name="DES",     keyLength=64,  IVLength=64,  blockLength=64,  m2="des_cbc", keyFixup="des_set_odd_parity")
 
 CryptoAlgo.add_algo(0x8009, name="HMAC", digestLength=160, blockLength=512)
 
@@ -80,40 +86,61 @@ CryptoAlgo.add_algo(0x800d, name="sha384", digestLength=384, blockLength=1024)
 CryptoAlgo.add_algo(0x800e, name="sha512", digestLength=512, blockLength=1024)
 
 
-def bitcount_B(x):
-    """Internal use. Returns number of 1s in the binary form of the byte x
-    Used for the des_set_odd_parity
-    """
-    x = ((x & 0xaa) >> 1) + (x & 0x55)
-    x = ((x & 0xcc) >> 2) + (x & 0x33)
-    x = ((x & 0xf0) >> 4) + (x & 0x0f)
-    return x
+def des_set_odd_parity(key):
+    _lut = [1, 1, 2, 2, 4, 4, 7, 7, 8, 8, 11 , 11, 13, 13, 14, 14, 16, 16, 19,
+        19, 21, 21, 22, 22, 25, 25, 26, 26, 28, 28, 31, 31, 32, 32, 35, 35, 37,
+        37, 38, 38, 41, 41, 42, 42, 44, 44, 47, 47, 49, 49, 50, 50, 52, 52, 55,
+        55, 56, 56, 59, 59, 61, 61, 62, 62, 64, 64, 67, 67, 69, 69, 70, 70, 73,
+        73, 74, 74, 76, 76, 79, 79, 81, 81, 82, 82, 84, 84, 87, 87, 88, 88, 91,
+        91, 93, 93, 94, 94, 97, 97, 98, 98, 100, 100, 103, 103, 104, 104, 107,
+        107, 109, 109, 110, 110, 112, 112, 115, 115, 117, 117, 118, 118, 121,
+        121, 122, 122, 124, 124, 127, 127, 128, 128, 131, 131, 133, 133, 134,
+        134, 137, 137, 138, 138, 140, 140, 143, 143, 145, 145, 146, 146, 148,
+        148, 151, 151, 152, 152, 155, 155, 157, 157, 158, 158, 161, 161, 162,
+        162, 164, 164, 167, 167, 168, 168, 171, 171, 173, 173, 174, 174, 176,
+        176, 179, 179, 181, 181, 182, 182, 185, 185, 186, 186, 188, 188, 191,
+        191, 193, 193, 194, 194, 196, 196, 199, 199, 200, 200, 203, 203, 205,
+        205, 206, 206, 208, 208, 211, 211, 213, 213, 214, 214, 217, 217, 218,
+        218, 220, 220, 223, 223, 224, 224, 227, 227, 229, 229, 230, 230, 233,
+        233, 234, 234, 236, 236, 239, 239, 241, 241, 242, 242, 244, 244, 247,
+        247, 248, 248, 251, 251, 253, 253, 254, 254]
+    tmp = array.array("B")
+    tmp.fromstring(key)
+    for i, v in enumerate(tmp):
+        tmp[i] = _lut[v]
+    return tmp.tostring()
 
 
-def CryptSessionKey(masterkey, nonce, hashAlgoName='sha1', entropy="", strongPassword=""):
+def CryptSessionKey(masterkey, nonce, hashAlgo, entropy=None, strongPassword=None):
     """Computes the decryption key for DPAPI blob, given the masterkey and
     optional information.
 
     """
-    if len(masterkey) > 63:
-        masterkey = hashlib.sha1(masterkey).digest()
+    masterkey = hashlib.sha1(masterkey).digest()
 
-    masterkey += "\0"*64
-    ipad = "".join(chr(ord(masterkey[i]) ^ 0x36) for i in range(64))
-    opad = "".join(chr(ord(masterkey[i]) ^ 0x5c) for i in range(64))
-
-    digest = hashlib.new(hashAlgoName)
+    masterkey += "\x00" * hashAlgo.blockSize
+    ipad = "".join(chr(ord(masterkey[i])^0x36) for i in range(hashAlgo.blockSize))
+    opad = "".join(chr(ord(masterkey[i])^0x5c) for i in range(hashAlgo.blockSize))
+    digest = hashlib.new(hashAlgo.name)
     digest.update(ipad)
     digest.update(nonce)
+    if hashAlgo.name != 'sha1':
+        # RFC compliant HMAC for non XP cases
+        if entropy is not None:
+            digest.update(entropy)
+        if strongPassword is not None:
+            digest.update(strongPassword)
     tmp = digest.digest()
 
-    digest = hashlib.new(hashAlgoName)
+    digest = hashlib.new(hashAlgo.name)
     digest.update(opad)
     digest.update(tmp)
-    if entropy is not None:
-        digest.update(entropy)
-    if strongPassword is not None:
-        digest.update(strongPassword)
+    if hashAlgo.name == 'sha1':
+        # Win XP has a non RFC compliant HMAC...
+        if entropy is not None:
+            digest.update(entropy)
+        if strongPassword is not None:
+            digest.update(strongPassword)
     return digest.digest()
 
 
@@ -122,25 +149,13 @@ def CryptDeriveKey(h, cipherAlgo, digest='sha1'):
     _dg = getattr(hashlib, digest)
     if len(h) > 64:
         h = _dg(h).digest()
-
     if len(h) >= cipherAlgo.keyLength:
         return h
-
     h += "\0"*64
-
     ipad = "".join(chr(ord(h[i])^0x36) for i in range(64))
     opad = "".join(chr(ord(h[i])^0x5c) for i in range(64))
-
     k = _dg(ipad).digest() + _dg(opad).digest()
-
-    if cipherAlgo.name in ["DES", "DES2", "DES3"]:
-        ## des_set_odd_parity
-        tmp = array.array("B")
-        tmp.fromstring(k)
-        for i, v in enumerate(tmp):
-            tmp[i] ^= (bitcount_B(v) ^ 1) & 1
-        k = tmp.tostring()
-
+    k = cipherAlgo.do_fixup_key(k)
     return k
 
 
@@ -198,17 +213,16 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1', mac=hmac):
     Returns the corresponding expanded key which is keylen long.
 
     """
-    _dg = getattr(hashlib, digest)
     buff = ""
-    i = 0
+    i = 1
     while len(buff) < keylen:
-        i += 1
         U = salt + struct.pack("!L", i)
-        init = "\0"*len(U)
-        for j in xrange(iterations):
-            U = mac.new(passphrase, U, _dg).digest()
-            init = U = "".join([chr(ord(x) ^ ord(y)) for x, y in zip(init, U)])
-        buff += init
+        i += 1
+        derived = M2Crypto.EVP.hmac(passphrase, U, digest)
+        for r in xrange(iterations - 1):
+            actual = M2Crypto.EVP.hmac(passphrase, derived, digest)
+            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        buff += derived
     return buff[:keylen]
 
 
@@ -229,7 +243,9 @@ def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
     hname = {"HMAC": "sha1"}.get(hashAlgo.name, hashAlgo.name)
     derived = pbkdf2(encKey, iv, cipherAlgo.keyLength + cipherAlgo.ivLength, rounds, hname)
     key, iv = derived[:cipherAlgo.keyLength], derived[cipherAlgo.keyLength:]
-    cipher = M2Crypto.EVP.Cipher(cipherAlgo.m2name, key, iv[:16], M2Crypto.decrypt, 0)
+    key = key[:cipherAlgo.keyLength]
+    iv = iv[:cipherAlgo.ivLength]
+    cipher = M2Crypto.EVP.Cipher(cipherAlgo.m2name, key, iv, M2Crypto.decrypt, 0)
     cipher.set_padding(0)
     cleartxt = cipher.update(raw) + cipher.final()
     return cleartxt
