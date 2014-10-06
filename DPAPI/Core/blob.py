@@ -81,17 +81,20 @@ class DPAPIBlob(eater.DataStruct):
         """
         for algo in [crypto.CryptSessionKeyXP, crypto.CryptSessionKeyWin7]:
             try:
-                sessionkey = algo(masterkey, self.data, self.hashAlgo, entropy, strongPassword)
-                key = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
+                sessionkey = algo(masterkey, self.data, self.hashAlgo, entropy=entropy, strongPassword=strongPassword)
+                key = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo)
                 cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, key[:self.cipherAlgo.keyLength],
                                              "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
                 cipher.set_padding(1)
                 self.cleartext = cipher.update(self.cipherText) + cipher.final()
                 # check against provided HMAC
-                k = algo(masterkey, self.salt, self.hashAlgo, entropy=entropy, strongPassword=self.blob)
+                self.crcComputed = algo(masterkey, self.salt, self.hashAlgo, entropy=entropy, strongPassword=self.blob)
                 self.decrypted = self.crcComputed == self.crc
-            except:
-                self.decrypted = False
+                if self.decrypted:
+                    return True
+            except M2Crypto.EVP.EVPError:
+                pass
+        self.decrypted = False
         return self.decrypted
 
     def __repr__(self):
