@@ -84,22 +84,23 @@ class DPAPIBlob(eater.DataStruct):
             self.cleartext = cipher.update(self.cipherText) + cipher.final()
         except:
             self.decrypted = False
-            return
+            return False
 
         ## check against provided HMAC
         self.crcComputed = crypto.CryptSessionKey(masterkey, self.salt, self.hashAlgo.name, entropy=entropy,
                                                   strongPassword=self.blob)
         self.decrypted = self.crcComputed == self.crc
+        return self.decrypted
 
     def __repr__(self):
         s = ["DPAPI BLOB"]
-        s.append("""        version     = %(version)d
-        provider    = %(provider)s
-        mkey        = %(guids)r
-        flags       = %(flags)#x
-        descr       = %(description)s
-        cipherAlgo  = %(cipherAlgo)r
-        hashAlgo    = %(hashAlgo)r""" % self.__dict__)
+        s.append("\n".join(["\tversion     = %(version)d",
+            "\tprovider    = %(provider)s",
+            "\tmkey        = %(guids)r",
+            "\tflags       = %(flags)#x",
+            "\tdescr       = %(description)s",
+            "\tcipherAlgo  = %(cipherAlgo)r",
+            "\thashAlgo    = %(hashAlgo)r"]) % self.__dict__)
         s.append("\tdata        = %s" % self.data.encode('hex'))
         s.append("\tsalt        = %s" % self.salt.encode('hex'))
         s.append("\tcipher      = %s" % self.cipherText.encode('hex'))
