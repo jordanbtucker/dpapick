@@ -21,6 +21,7 @@ import hashlib
 import os
 import re
 from collections import defaultdict
+import cPickle
 
 from DPAPI.Core import eater
 from DPAPI.Core import credhist
@@ -65,7 +66,7 @@ class MasterKey(eater.DataStruct):
         also extracts the HMAC part of the decrypted stuff and compare it with
         the computed one.
 
-        Note that, once sucessfully decrypted, the masterkey will not be
+        Note that, once successfully decrypted, the masterkey will not be
         decrypted anymore; this function will simply return.
 
         """
@@ -84,7 +85,8 @@ class MasterKey(eater.DataStruct):
     def __repr__(self):
         s = ["Masterkey block",
              "\tcipher algo  = %s" % repr(self.cipherAlgo),
-             "\thash algo    = %s" % repr(self.hashAlgo), "        rounds       = %i" % self.rounds,
+             "\thash algo    = %s" % repr(self.hashAlgo),
+             "\trounds       = %i" % self.rounds,
              "\tIV           = %s" % self.iv.encode("hex")]
         if self.key is not None:
             s.append("\tkey          = %s" % self.key.encode("hex"))
@@ -229,9 +231,9 @@ class MasterKeyPool(object):
 
     def __init__(self):
         self.keys = defaultdict(lambda: [])
-        self.creds = { }
+        self.creds = {}
         self.system = None
-        self.passwords = []
+        self.passwords = set()
 
     def addMasterKey(self, mkey):
         """Add a MasterKeyFile is the pool.
@@ -274,9 +276,8 @@ class MasterKeyPool(object):
         credfile is the full path to the CREDHIST file to add.
 
         """
-        f = open(credfile, 'rb')
-        self.addCredhist(sid, credhist.CredHistFile(f.read()))
-        f.close()
+        with open(credfile, 'rb') as f:
+            self.addCredhist(sid, credhist.CredHistFile(f.read()))
 
     def loadDirectory(self, directory):
         """Adds every masterkey contained in the given directory to the pool.
@@ -289,11 +290,24 @@ class MasterKeyPool(object):
         for k in os.listdir(directory):
             if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
                 try:
-                    f = open(os.path.join(directory, k), 'rb')
-                    self.addMasterKey(f.read())
-                    f.close()
+                    with open(os.path.join(directory, k), 'rb') as f:
+                        self.addMasterKey(f.read())
                 except:
                     pass
+
+    def pickle(self, filename=None):
+        if filename is not None:
+            cPickle.dump(self, filename)
+        else:
+            return cPickle.dumps(self)
+
+    @classmethod
+    def unpickle(class, data=None, filename=None):
+        if data is not None:
+            return cPickle.loads(data)
+        if filename is not None:
+            return cPickle.load(filename)
+        raise ValueError("must provide either data or filename argument")
 
     def try_credential(self, userSID, password):
         """This function tries to decrypt every masterkey contained in the pool
@@ -308,12 +322,13 @@ class MasterKeyPool(object):
 
         """
         n = 0
-        for mk in self.keys.values():
-            if not mk.decrypted:
-                mk.decryptWithPassword(userSID, password)
-                if mk.decrypted:
-                    self.passwords.append(password)
-                    n += 1
+        for mkl in self.keys.values():
+            for mk in mkl:
+                if not mk.decrypted:
+                    mk.decryptWithPassword(userSID, password)
+                    if mk.decrypted:
+                        self.passwords.add(password)
+                        n += 1
         return n
 
     def __repr__(self):
@@ -321,9 +336,10 @@ class MasterKeyPool(object):
              "Passwords:",
              repr(self.passwords),
              "Keys:",
-             repr(self.keys.items()),
-             repr(self.system),
-             "CredHist entries:"]
+             repr(self.keys.items())]
+        if self.system is not None:
+             s.append(repr(self.system))
+        s.append("CredHist entries:")
         for i in self.creds.keys():
             s.append("\tSID: %s" % i)
             s.append(repr(self.creds[i]))
