@@ -18,7 +18,7 @@
 #############################################################################
 
 import struct
-import CFPropertyList
+from CFPropertyList import CFPropertyList
 from DPAPI import probe
 from DPAPI.Core import blob
 
