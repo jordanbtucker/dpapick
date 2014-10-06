@@ -79,9 +79,10 @@ class DPAPIBlob(eater.DataStruct):
         :param entropy: optional entropy for decrypting the blob
         :param strongPassword: optional password for decrypting the blob
         """
-        for algo in [crypto.CryptDeriveKeyXP, crypto.CryptDeriveKeyWin7]:
+        for algo in [crypto.CryptSessionKeyXP, crypto.CryptSessionKeyWin7]:
             try:
-                key = algo(masterkey, self.data, self.hashAlgo, entropy, strongPassword)
+                sessionkey = algo(masterkey, self.data, self.hashAlgo, entropy, strongPassword)
+                key = crypto.CryptDeriveKey(sessionkey, self.cipherAlgo, self.hashAlgo.name)
                 cipher = M2Crypto.EVP.Cipher(self.cipherAlgo.m2name, key[:self.cipherAlgo.keyLength],
                                              "\x00" * self.cipherAlgo.ivLength, M2Crypto.decrypt, 0)
                 cipher.set_padding(1)
