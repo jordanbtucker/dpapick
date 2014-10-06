@@ -128,43 +128,48 @@ class PrivateKeyBlob(probe.DPAPIProbe):
             s.append('-----END RSA PRIVATE KEY-----')
             return "\n".join(s)
 
-        class RSAPrivKey(probe.DPAPIProbe):
-            """Internal use. This represents the DPAPI BLOB containing the RSA
-            key pair"""
-            def parse(self, data):
-                self.dpapiblob = blob.DPAPIBlob(data.remain())
+    class RSAPrivKey(probe.DPAPIProbe):
+        """Internal use. This represents the DPAPI BLOB containing the RSA
+        key pair"""
+        def parse(self, data):
+            self.dpapiblob = blob.DPAPIBlob(data.remain())
 
-            def postprocess(self, **k):
-                self.clearKey = PrivateKeyBlob.RSAKey(self.dpapiblob.cleartext)
+        def postprocess(self, **k):
+            self.clearKey = PrivateKeyBlob.RSAKey(self.dpapiblob.cleartext)
 
-            def __repr__(self):
-                s = ["RSA Private Key Blob"]
-                if self.entropy:
-                    s.append("entropy = %s" % self.entropy.encode('hex'))
-                if hasattr(self, "strong"):
-                    s.append("strong = %s" % self.strong.encode('hex'))
-                if self.dpapiblob.decrypted:
-                    s.append(repr(self.clearKey))
-                s.append(repr(self.dpapiblob))
-                return "\n".join(s)
+        def export(self):
+            if self.clearKey is None:
+                return ""
+            return self.clearKey.export()
 
-        class RSAFlags(probe.DPAPIProbe):
-            """This subclass represents the export flags BLOB"""
-            def parse(self, data):
-                self.dpapiblob = blob.DPAPIBlob(data.remain())
+        def __repr__(self):
+            s = ["RSA Private Key Blob"]
+            if self.entropy:
+                s.append("entropy = %s" % self.entropy.encode('hex'))
+            if hasattr(self, "strong"):
+                s.append("strong = %s" % self.strong.encode('hex'))
+            if self.dpapiblob.decrypted:
+                s.append(repr(self.clearKey))
+            s.append(repr(self.dpapiblob))
+            return "\n".join(s)
 
-            def preprocess(self, **k):
-                self.entropy = "Hj1diQ6kpUx7VC4m\0"
-                if hasattr(k, "strong"):
-                    self.strong = k["strong"]
+    class RSAFlags(probe.DPAPIProbe):
+        """This subclass represents the export flags BLOB"""
+        def parse(self, data):
+            self.dpapiblob = blob.DPAPIBlob(data.remain())
 
-            def __repr__(self):
-                s = ["Export Flags"]
-                s.append("entropy = %s" % self.entropy)
-                if hasattr(self, "strong"):
-                    s.append("strong = %s" % self.strong.encode("hex"))
-                s.append("%r" % self.dpapiblob)
-                return "\n".join(s)
+        def preprocess(self, **k):
+            self.entropy = "Hj1diQ6kpUx7VC4m\0"
+            if hasattr(k, "strong"):
+                self.strong = k["strong"]
+
+        def __repr__(self):
+            s = ["Export Flags"]
+            s.append("entropy = %s" % self.entropy)
+            if hasattr(self, "strong"):
+                s.append("strong = %s" % self.strong.encode("hex"))
+            s.append("%r" % self.dpapiblob)
+            return "\n".join(s)
 
     def parse(self, data):
         self.version = data.eat("L")
