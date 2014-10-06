@@ -182,7 +182,7 @@ class BlobWin8SimpleTest(unittest.TestCase):
 
         self.assertTrue(self.blob.decrypted)
         self.assertEqual(self.blob.crc, self.blob.crcComputed)
-        self.assertEqual(self.blob.cleartext, "This is for real !")
+        self.assertEqual(self.blob.cleartext, "UberSecret\x00")
 
 
 class BlobWin8EntropyTest(unittest.TestCase):
@@ -241,7 +241,7 @@ class BlobWin8EntropyTest(unittest.TestCase):
 
         self.assertTrue(self.blob.decrypted)
         self.assertEqual(self.blob.crc, self.blob.crcComputed)
-        self.assertEqual(self.blob.cleartext, "UpToApp\x00")
+        self.assertEqual(self.blob.cleartext, "UberSecret\x00")
 
 
 if __name__ == "__main__":
