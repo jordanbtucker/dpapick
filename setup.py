@@ -18,12 +18,18 @@
 #############################################################################
 
 from distutils.core import setup
+from sys import version
+
+if version < '2.2.3':
+    from distutils.dist import DistributionMetadata
+    DistributionMetadata.classifiers = None
+    DistributionMetadata.download_url = None
 
 setup(
     name='DPAPI',
     version='0.3',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
-    scripts=['bin/dpapick'],
+    scripts=['bin/dpapidec'],
 
     # Metadata
     author='Jean-Michel PICOD',
@@ -33,4 +39,17 @@ setup(
     # keywords = '',
     url='http://www.dpapick.com',
     requires=['M2Crypto', 'registry'],
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Topic :: Security :: Cryptography",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        "Topic :: System :: Recovery Tools"
+    ]
 )
