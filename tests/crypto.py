@@ -65,7 +65,7 @@ class CryptoTest(unittest.TestCase):
         r = "397ec5c4dc5d5733b7dadd94178f827951b5ea66".decode("hex")
 
         self.assertEquals(crypto.CryptSessionKeyXP(m, n, h), r)
-        self.assertNotEquals(crypto.CryptSessionKeyWin7(m, n, h), r)
+        self.assertEquals(crypto.CryptSessionKeyWin7(m, n, h), r)
 
     def test_CryptSessionKeyXPEntropy(self):
         m = ("d0c624a61e4080ac28ec07f33466581e"
@@ -140,7 +140,7 @@ class CryptoTest(unittest.TestCase):
             "4d3090ba78ece4703f190d4a0f22cd1b"
             "4cf224685eb317c6617f12368fd5197e").decode("hex")
 
-        self.assertNotEquals(crypto.CryptSessionKeyXP(m, n, h), r)
+        self.assertEquals(crypto.CryptSessionKeyXP(m, n, h), r)
         self.assertEquals(crypto.CryptSessionKeyWin7(m, n, h), r)
 
     def test_CryptSessionKeyWin81Entropy(self):
