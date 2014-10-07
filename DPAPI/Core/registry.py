@@ -39,16 +39,15 @@ class Regedit(object):
         located under %WINDIR%\\system32\\config\\ directory.
 
         """
-        f = open(system, 'rb')
-        r = Registry.Registry(f)
-        cs = r.open("Select").value("Current").value()
-        r2 = r.open("ControlSet%03d\\Control\\Lsa" % cs)
-        syskey = reduce(
-            lambda x, y: x + y,
-            map(lambda x: r2.subkey(x)._nkrecord.classname(), ['JD', 'Skew1', 'GBG', 'Data'])
-        ).decode("UTF-16LE").decode('hex')
+        with open(system, 'rb') as f:
+            r = Registry.Registry(f)
+            cs = r.open("Select").value("Current").value()
+            r2 = r.open("ControlSet%03d\\Control\\Lsa" % cs)
+            syskey = reduce(
+                lambda x, y: x + y,
+                map(lambda x: r2.subkey(x)._nkrecord.classname(), ['JD', 'Skew1', 'GBG', 'Data'])
+            ).decode("UTF-16LE").decode('hex')
 
-        f.close()
         self.syskey = ''
         transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
         for i in xrange(len(syskey)):
@@ -66,12 +65,11 @@ class Regedit(object):
         self.get_syskey() if it has not been previously done.
 
         """
-        f = open(security, 'rb')
-        r = Registry.Registry(f)
-        r2 = r.open("Policy\\PolSecretEncryptionKey")
-        lsakey = r2.value("(default)").value()
-        self.lsakey = crypto.decrypt_lsa_key(lsakey, self.syskey)
-        f.close()
+        with open(security, 'rb') as f:
+            r = Registry.Registry(f)
+            r2 = r.open("Policy\\PolSecretEncryptionKey")
+            lsakey = r2.value("(default)").value()
+            self.lsakey = crypto.decrypt_lsa_key(lsakey, self.syskey)
         return self.lsakey
 
     def get_lsa_secrets(self, security, system):
@@ -86,13 +84,12 @@ class Regedit(object):
         """
         self.get_syskey(system)
         deskey = self.get_lsa_key(security)
-        f = open(security, 'rb')
-        r = Registry.Registry(f)
-        r2 = r.open("Policy\\Secrets")
-        for i in r2.subkeys():
-            val = i.subkey("CurrVal").value('(default)').value()
-            self.lsa_secrets[i.name()] = crypto.SystemFunction005(val[0xc:], deskey)
-        f.close()
+        with open(security, 'rb') as f:
+            r = Registry.Registry(f)
+            r2 = r.open("Policy\\Secrets")
+            for i in r2.subkeys():
+                val = i.subkey("CurrVal").value('(default)').value()
+                self.lsa_secrets[i.name()] = crypto.SystemFunction005(val[0xc:], deskey)
         return self.lsa_secrets
 
 # vim:ts=4:expandtab:sw=4
