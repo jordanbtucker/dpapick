@@ -88,6 +88,32 @@ class MkeyXPTest(unittest.TestCase):
         self.assertEqual(len(self.mk.masterkey.key), 64)
         self.assertEqual(len(self.mk.masterkey.hmacSalt), 16)
 
+    def test_decrypt_with_key(self):
+        self.assertFalse(self.mk.decrypted)
+        self.mk.decryptWithKey(crypto.derivePwdHash(self.pwdhash, self.sid))
+
+        self.assertTrue(self.mk.masterkey.decrypted)
+        self.assertTrue(self.mk.decrypted)
+        self.assertEqual(self.mk.masterkey.hmac, self.mk.masterkey.hmacComputed)
+        self.assertEqual(len(self.mk.masterkey.iv), 16)
+        self.assertEqual(len(self.mk.masterkey.key), 64)
+        self.assertEqual(len(self.mk.masterkey.hmacSalt), 16)
+
+    def test_decrypt_twice(self):
+        self.assertFalse(self.mk.decrypted)
+        self.mk.decryptWithHash(self.sid, self.pwdhash)
+
+        self.assertTrue(self.mk.decrypted)
+        self.mk.decryptWithHash(self.sid, "")
+        self.assertTrue(self.mk.decrypted)
+
+    def test_unpickle_pickle(self):
+        mkp = masterkey.MasterKeyPool()
+        mkp.addMasterKey(self.mkeyblob)
+        mkp2 = masterkey.MasterKeyPool.unpickle(data=mkp.pickle())
+
+        self.assertEquals(mkp.getMasterKeys(), mkp2.getMasterKeys())
+
 
 class MkeyWin7Test(unittest.TestCase):
     def setUp(self):
