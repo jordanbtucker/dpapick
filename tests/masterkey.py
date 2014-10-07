@@ -108,11 +108,28 @@ class MkeyXPTest(unittest.TestCase):
         self.assertTrue(self.mk.decrypted)
 
     def test_unpickle_pickle(self):
+        self.maxDiff = None
         mkp = masterkey.MasterKeyPool()
         mkp.addMasterKey(self.mkeyblob)
         mkp2 = masterkey.MasterKeyPool.unpickle(data=mkp.pickle())
 
-        self.assertEquals(mkp.getMasterKeys(), mkp2.getMasterKeys())
+        self.assertNotEquals(len(mkp.getMasterKeys(self.mk.guid)), 0)
+        self.assertNotEquals(len(mkp2.getMasterKeys(self.mk.guid)), 0)
+        self.assertEquals(len(mkp.getMasterKeys(self.mk.guid)), len(mkp2.getMasterKeys(self.mk.guid)))
+        self.assertEquals(repr(mkp.getMasterKeys(self.mk.guid)), repr(mkp2.getMasterKeys(self.mk.guid)))
+
+    def test_unpickle_pickle_decrypted(self):
+        self.maxDiff = None
+        mkp = masterkey.MasterKeyPool()
+        mkp.addMasterKey(self.mkeyblob)
+        nb = mkp.try_credential(self.sid, self.password)
+        mkp2 = masterkey.MasterKeyPool.unpickle(data=mkp.pickle())
+
+        self.assertEquals(nb, 1)
+        self.assertNotEquals(len(mkp.getMasterKeys(self.mk.guid)), 0)
+        self.assertNotEquals(len(mkp2.getMasterKeys(self.mk.guid)), 0)
+        self.assertEquals(len(mkp.getMasterKeys(self.mk.guid)), len(mkp2.getMasterKeys(self.mk.guid)))
+        self.assertEquals(repr(mkp.getMasterKeys(self.mk.guid)), repr(mkp2.getMasterKeys(self.mk.guid)))
 
 
 class MkeyWin7Test(unittest.TestCase):

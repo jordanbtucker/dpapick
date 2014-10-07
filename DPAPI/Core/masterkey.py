@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # ############################################################################
-##                                                                         ##
+# #                                                                         ##
 ## This file is part of DPAPIck                                            ##
 ## Windows DPAPI decryption & forensic toolkit                             ##
 ##                                                                         ##
@@ -38,6 +38,19 @@ class MasterKey(eater.DataStruct):
         self.hmac = None
         self.hmacComputed = None
         eater.DataStruct.__init__(self, raw)
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        for k in ["cipherAlgo", "hashAlgo"]:
+            if k in d:
+                d[k] = d[k].algnum
+        return d
+
+    def __setstate__(self, d):
+        for k in ["cipherAlgo", "hashAlgo"]:
+            if k in d:
+                d[k] = crypto.CryptoAlgo(d[k])
+        self.__dict__.update(d)
 
     def parse(self, data):
         self.version = data.eat("L")
@@ -230,7 +243,7 @@ class MasterKeyPool(object):
 
     def __init__(self):
         self.keys = defaultdict(lambda: [])
-        self.creds = {}
+        self.creds = { }
         self.system = None
         self.passwords = set()
 
@@ -300,6 +313,17 @@ class MasterKeyPool(object):
         else:
             return cPickle.dumps(self, 2)
 
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        d["keys"] = dict(d["keys"])
+        return d
+
+    def __setstate__(self, d):
+        tmp = dict(d["keys"])
+        d["keys"] = defaultdict(lambda: [])
+        d["keys"].update(tmp)
+        self.__dict__.update(d)
+
     @staticmethod
     def unpickle(data=None, filename=None):
         if data is not None:
@@ -337,7 +361,7 @@ class MasterKeyPool(object):
              "Keys:",
              repr(self.keys.items())]
         if self.system is not None:
-             s.append(repr(self.system))
+            s.append(repr(self.system))
         s.append("CredHist entries:")
         for i in self.creds.keys():
             s.append("\tSID: %s" % i)

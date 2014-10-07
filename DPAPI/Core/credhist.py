@@ -53,7 +53,6 @@ class CredSystem(eater.DataStruct):
             self.user
 
     """
-
     def __init__(self, raw=None):
         self.machine = None
         self.user = None
@@ -76,11 +75,23 @@ class CredSystem(eater.DataStruct):
 
 class CredhistEntry(eater.DataStruct):
     """Represents an entry in the Credhist file"""
-
     def __init__(self, raw=None):
         self.pwdhash = None
         self.hmac = None
         eater.DataStruct.__init__(self, raw)
+
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        for k in ["cipherAlgo", "hashAlgo"]:
+            if k in d:
+                d[k] = d[k].algnum
+        return d
+
+    def __setstate__(self, d):
+        for k in ["cipherAlgo", "hashAlgo"]:
+            if k in d:
+                d[k] = crypto.CryptoAlgo(d[k])
+        self.__dict__.update(d)
 
     def parse(self, data):
         self.revision = data.eat("L")
@@ -167,7 +178,6 @@ class CredHistFile(eater.DataStruct):
     whole CredHistFile is flagged as valid. Then, no further decryption occurs.
 
     """
-
     def __init__(self, raw=None):
         self.entries_list = []
         self.entries = { }
@@ -200,7 +210,7 @@ class CredHistFile(eater.DataStruct):
 
     def decryptWithHash(self, h):
         """Try to decrypt each entry with the given hash"""
-        if self.valid == True:
+        if self.valid:
             return
         curhash = h
         for entry in self.entries_list:
