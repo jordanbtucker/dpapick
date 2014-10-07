@@ -203,7 +203,6 @@ class MasterKeyFile(eater.DataStruct):
             return self.backupkey.key
         return self.masterkey.key
 
-
     def __repr__(self):
         s = ["\n#### MasterKeyFile %s ####" % self.guid,
              "\tversion   = %#d" % self.version,
@@ -297,9 +296,9 @@ class MasterKeyPool(object):
 
     def pickle(self, filename=None):
         if filename is not None:
-            cPickle.dump(self, filename)
+            cPickle.dump(self, filename, 2)
         else:
-            return cPickle.dumps(self)
+            return cPickle.dumps(self, 2)
 
     @staticmethod
     def unpickle(data=None, filename=None):
