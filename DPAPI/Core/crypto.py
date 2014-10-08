@@ -205,6 +205,7 @@ def SystemFunction005(secret, key):
     """
     decrypted_data = ''
     j = 0
+    algo = CryptoAlgo(0x6603)
     for i in range(0, len(secret), 8):
         enc_block = secret[i:i + 8]
         block_key = key[j:j + 7]
@@ -217,7 +218,6 @@ def SystemFunction005(secret, key):
         des_key.append(((ord(block_key[4]) & 0x1F) << 2) | (ord(block_key[5]) >> 6))
         des_key.append(((ord(block_key[5]) & 0x3F) << 1) | (ord(block_key[6]) >> 7))
         des_key.append(ord(block_key[6]) & 0x7F)
-        algo = CryptoAlgo(0x6603)
         for _, v in enumerate(des_key):
             des_key[i] = v << 1
         des_key = algo.do_fixup_key(des_key.tostring())
