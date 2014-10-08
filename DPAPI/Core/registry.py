@@ -43,13 +43,10 @@ class Regedit(object):
             r = Registry.Registry(f)
             cs = r.open("Select").value("Current").value()
             r2 = r.open("ControlSet%03d\\Control\\Lsa" % cs)
-            syskey = reduce(
-                lambda x, y: x + y,
-                map(lambda x: r2.subkey(x)._nkrecord.classname(), ['JD', 'Skew1', 'GBG', 'Data'])
-            ).decode("UTF-16LE").decode('hex')
-
-        self.syskey = ''
+            syskey = "".join([r2.subkey(x)._nkrecord.classname() for x in ('JD', 'Skew1', 'GBG', 'Data')])
+        syskey = syskey.encode("ascii").decode("hex")
         transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
+        self.syskey = ""
         for i in xrange(len(syskey)):
             self.syskey += syskey[transforms[i]]
         return self.syskey
