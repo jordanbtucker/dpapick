@@ -21,6 +21,7 @@ from blob import *
 from credhist import *
 from crypto import *
 from masterkey import *
+from registry import *
 import unittest
 
 if __name__ == '__main__':
