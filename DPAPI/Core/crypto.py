@@ -188,7 +188,7 @@ def CryptDeriveKey(h, cipherAlgo, hashAlgo):
     return k
 
 
-def decrypt_lsa_key(lsakey, syskey):
+def decrypt_lsa_key_nt5(lsakey, syskey):
     """This function decrypts the LSA key using the syskey"""
     dg = hashlib.md5()
     dg.update(syskey)
@@ -196,7 +196,31 @@ def decrypt_lsa_key(lsakey, syskey):
         dg.update(lsakey[60:76])
     arcfour = M2Crypto.RC4.RC4(dg.digest())
     deskey = arcfour.update(lsakey[12:60]) + arcfour.final()
-    return deskey[0x10:0x20]
+    return [deskey[16 * x:16 * (x + 1)] for x in xrange(3)]
+
+
+def decrypt_lsa_key_nt6(lsakey, syskey):
+    """This function decrypts the LSA keys using the syskey"""
+    dg = hashlib.sha256()
+    dg.update(syskey)
+    for i in xrange(1000):
+        dg.update(lsakey[28:60])
+    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv="", op=M2Crypto.decrypt)
+    c.set_padding(0)
+    keys = c.update(lsakey[60:]) + c.final()
+    size = struct.unpack_from("<L", keys)[0]
+    keys = keys[16:16 + size]
+    currentkey = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % struct.unpack("<L2H8B", keys[4:20])
+    nb = struct.unpack("<L", keys[24:28])[0]
+    off = 28
+    kd = {}
+    for i in xrange(nb):
+        g = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % struct.unpack("<L2H8B", keys[off:off + 16])
+        t, l = struct.unpack_from("<2L", keys[off + 16:])
+        k = keys[off + 24:off + 24 + l]
+        kd[g] = {"type": t, "key": k}
+        off += 24 + l
+    return (currentkey, kd)
 
 
 def SystemFunction005(secret, key):
@@ -229,6 +253,23 @@ def SystemFunction005(secret, key):
             j = len(key[j:j + 7])
     dec_data_len = struct.unpack("<L", decrypted_data[:4])[0]
     return decrypted_data[8:8 + dec_data_len]
+
+
+def decrypt_lsa_secret(secret, lsa_keys, algo=3):
+    """This function replaces SystemFunction005 for newer Windows"""
+    keyid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % struct.unpack("<L2H8B", secret[4:20])
+    if keyid not in lsa_keys:
+        return None
+    algo = struct.unpack("<L", secret[20:24])[0]
+    dg = hashlib.sha256()
+    dg.update(lsa_keys[keyid]["key"])
+    for i in xrange(1000):
+        dg.update(secret[28:60])
+    c = M2Crypto.EVP.Cipher(alg="aes_256_ecb", key=dg.digest(), iv="", op=M2Crypto.decrypt)
+    c.set_padding(0)
+    clear = c.update(secret[60:]) + c.final()
+    size = struct.unpack_from("<L", clear)[0]
+    return clear[16:16 + size]
 
 
 def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):

@@ -19,6 +19,7 @@
 
 from Registry import Registry
 from DPAPI.Core import crypto
+from DPAPI.Core import eater
 
 
 class Regedit(object):
@@ -29,7 +30,9 @@ class Regedit(object):
 
     def __init__(self):
         self.syskey = None
-        self.lsakey = None
+        self.lsakeys = None
+        self.algo = 3
+        self.policy = {"major": 0, "minor": 0, "value": 0}
         self.lsa_secrets = {}
 
     def get_syskey(self, system):
@@ -62,12 +65,29 @@ class Regedit(object):
         self.get_syskey() if it has not been previously done.
 
         """
+        lsakey = ""
         with open(security, 'rb') as f:
             r = Registry.Registry(f)
-            r2 = r.open("Policy\\PolSecretEncryptionKey")
-            lsakey = r2.value("(default)").value()
-            self.lsakey = crypto.decrypt_lsa_key(lsakey, self.syskey)
-        return self.lsakey
+            rev = eater.Eater(r.open("Policy\\PolRevision").value("(default)").value())
+            self.policy["minor"] = rev.eat("H")
+            self.policy["major"] = rev.eat("H")
+            self.policy["value"] = float("%d.%02d" % (self.policy["major"], self.policy["minor"]))
+            if self.policy["value"] > 1.09:
+                # NT6
+                r2 = r.open("Policy\\PolEKList")
+                lsakey = r2.value("(default)").value()
+            else:
+                # NT5
+                r2 = r.open("Policy\\PolSecretEncryptionKey")
+                lsakey = r2.value("(default)").value()
+        rv = None
+        if self.policy["value"] > 1.09:
+            c, self.algo, self.lsakeys = crypto.decrypt_lsa_key_nt6(lsakey, self.syskey)
+            rv = self.lsakeys[c]
+        else:
+            self.lsakeys = crypto.decrypt_lsa_key_nt5(lsakey, self.syskey)
+            rv = self.lsakeys[1]
+        return rv
 
     def get_lsa_secrets(self, security, system):
         """Retrieves and decrypts LSA secrets from the registry.
@@ -80,13 +100,20 @@ class Regedit(object):
 
         """
         self.get_syskey(system)
-        deskey = self.get_lsa_key(security)
+        currentKey = self.get_lsa_key(security)
+        secrets = {}
         with open(security, 'rb') as f:
             r = Registry.Registry(f)
             r2 = r.open("Policy\\Secrets")
             for i in r2.subkeys():
                 val = i.subkey("CurrVal").value('(default)').value()
-                self.lsa_secrets[i.name()] = crypto.SystemFunction005(val[0xc:], deskey)
+                secrets[i.name()] = val
+        for k, v in secrets.iteritems():
+            if self.policy["value"] > 1.09:
+                # NT6
+                self.lsa_secrets[k] = crypto.decrypt_lsa_secret(v, self.lsakeys, self.algo)
+            else:
+                self.lsa_secrets[k] = crypto.SystemFunction005(v[0xc:], currentKey)
         return self.lsa_secrets
 
 # vim:ts=4:expandtab:sw=4

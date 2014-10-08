@@ -231,7 +231,7 @@ class CryptoTest(unittest.TestCase):
 
         self.assertEquals(crypto.CryptDeriveKey(h, c, algo), r)
 
-    def test_decrypt_lsa_keyXP(self):
+    def test_decrypt_lsa_key_nt5(self):
         lsakey = ("010000000100000000000000060677c4"
                   "63ced8d548dc2c528f2a64a5a4427907"
                   "5941537344cb7231c657f294ee4c5df0"
@@ -240,9 +240,30 @@ class CryptoTest(unittest.TestCase):
         syskey = "35bc7242385ed971867e722369bd8db4".decode("hex")
         r = "b150b4b4d14976cb9709fd3c8e001eab".decode("hex")
 
-        v = crypto.decrypt_lsa_key(lsakey, syskey)
-        self.assertEquals(len(v), 0x10)
-        self.assertEquals(v, r)
+        keys = crypto.decrypt_lsa_key_nt5(lsakey, syskey)
+        self.assertEquals(len(keys), 3)
+        self.assertEquals(len(keys[1]), len(r))
+        self.assertEquals(keys[1], r)
+
+    def test_decrypt_lsa_key_nt6(self):
+        lsakey = ("00000001ecffe17b2a997440aa939adb"
+                  "ff26f1fc0300000000000000ee645edd"
+                  "3156e5d6c69dc2851f3b59701730733b"
+                  "fe63a748a37165aeb4b402b344848e99"
+                  "f1442ba42ede3009b35552eb9001e917"
+                  "22ac479d752432f239c4412cde0d9f24"
+                  "f181cb75bcdc8aab3740f9d1c2153284"
+                  "b82651508b4117ea190f4a4bb8fd0100"
+                  "88857660ffa44d24e7de12d5bc49105c"
+                  "a74e80a204f5272413237ea2ed9aa743"
+                  "3743d0674dc4fe828581de36").decode("hex")
+        syskey = "9acd05908157e45449e2ee795a9cc87e".decode("hex")
+        r = "c6afbd790aa01079860362face32818b155facf4666a0e061b91597c46c9d1a8".decode("hex")
+
+        c, d = crypto.decrypt_lsa_key_nt6(lsakey, syskey)
+        self.assertTrue(c in d)
+        self.assertEquals(len(d[c]["key"]), len(r))
+        self.assertEquals(d[c]["key"], r)
 
     def test_SystemFunction005(self):
         secret = ("71b13f003a84728dda93ff24240e21fd"
@@ -255,6 +276,23 @@ class CryptoTest(unittest.TestCase):
              "EB C1 E3 77 9C 7F D5 5F 14 A8 92 F4").replace(" ", "").decode("hex")
 
         self.assertEquals(crypto.SystemFunction005(secret, key), r)
+
+    def test_decrypt_lsa_secret(self):
+        secret=("00000001b31b971b40ab9c1ba577d333"
+                "685b2f430300000000000000f725e552"
+                "7ebd98a928a9e903ddd243a7baa9761b"
+                "43237f66ce9a0061652b429269c06e25"
+                "d84e8e52195265497843fa95ce3b5472"
+                "42c0dea92ab8e7ff0cf266e7e59b7583"
+                "3a8a6c92d125cc866198db59e77f66c4"
+                "fe1f4f92d276aff94e29a685").decode("hex")
+        key = "c6afbd790aa01079860362face32818b155facf4666a0e061b91597c46c9d1a8".decode("hex")
+        r = ("01 00 00 00 EB F6 82 84 52 F6 CA 25 BA 36 2F CD"
+             "6C 76 36 88 70 70 87 CD 1C 14 65 17 23 BF EB 3A"
+             "0E 96 25 31 36 8A DF 95 44 DE D9 78").replace(" ", "").decode("hex")
+        d = {"1b971bb3-ab40-1b9c-a577-d333685b2f43": {"key": key}}
+
+        self.assertEquals(crypto.decrypt_lsa_secret(secret, d), r)
 
     def test_pbkdf2_1round_sha1(self):
         # XP
