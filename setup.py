@@ -33,7 +33,13 @@ setup(
     license='GPLv3',
     # keywords = '',
     url='http://www.dpapick.com',
-    install_requires=['M2Crypto', 'python-registry>=1.0.4'],
+    download_url='https://bitbucket.org/jmichel/dpapick/downloads',
+    install_requires=[
+        'M2Crypto>=0.21.1',
+        'python-registry>=1.0.4',
+        'pyasn1>=0.1.7',
+        'CFPropertyList',
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
@@ -42,9 +48,13 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Natural Language :: English",
         "Operating System :: OS Independent",
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 2.7",
         "Topic :: Security :: Cryptography",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Recovery Tools"
-    ]
+    ],
+    test_suite='tests.all',
+    dependency_links=["git+http://github.com/bencochran/CFPropertyList"],
+    zip_safe=False,
+    use_2to3=True,
 )
