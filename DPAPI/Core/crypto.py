@@ -202,6 +202,7 @@ def decrypt_lsa_key(lsakey, syskey):
 def SystemFunction005(secret, key):
     """This function is used to decrypt LSA secrets.
     Reproduces the corresponding Windows internal function.
+    Taken from creddump project https://code.google.com/p/creddump/
     """
     decrypted_data = ''
     j = 0
@@ -209,7 +210,7 @@ def SystemFunction005(secret, key):
     for i in range(0, len(secret), 8):
         enc_block = secret[i:i + 8]
         block_key = key[j:j + 7]
-        des_key = array.array('B')
+        des_key = []
         des_key.append(ord(block_key[0]) >> 1)
         des_key.append(((ord(block_key[0]) & 0x01) << 6) | (ord(block_key[1]) >> 2))
         des_key.append(((ord(block_key[1]) & 0x03) << 5) | (ord(block_key[2]) >> 3))
@@ -218,9 +219,7 @@ def SystemFunction005(secret, key):
         des_key.append(((ord(block_key[4]) & 0x1F) << 2) | (ord(block_key[5]) >> 6))
         des_key.append(((ord(block_key[5]) & 0x3F) << 1) | (ord(block_key[6]) >> 7))
         des_key.append(ord(block_key[6]) & 0x7F)
-        for _, v in enumerate(des_key):
-            des_key[i] = v << 1
-        des_key = algo.do_fixup_key(des_key.tostring())
+        des_key = algo.do_fixup_key("".join([chr(x << 1) for x in des_key]))
 
         cipher = M2Crypto.EVP.Cipher(alg="des_ecb", key=des_key, iv="", op=M2Crypto.decrypt)
         cipher.set_padding(0)
