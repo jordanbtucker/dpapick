@@ -74,9 +74,9 @@ class Regedit(object):
         security and system arguments are the full path to the corresponding
         registry files.
         This function automatically calls self.get_syskey() and
-        self.get_lsa_key() functions prior to the secrets retreival.
+        self.get_lsa_key() functions prior to the secrets retrieval.
 
-        Returns a dictionnary of secrets.
+        Returns a dictionary of secrets.
 
         """
         self.get_syskey(system)
