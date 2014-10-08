@@ -250,8 +250,9 @@ class CryptoTest(unittest.TestCase):
                   "306732c9f382719a856d4fad4182edd4"
                   "02b88075b64ddf6f").decode("hex")
         key = "b150b4b4d14976cb9709fd3c8e001eab".decode("hex")
-        # FIXME: add the expected result for SystemFunction005
-        r = ""
+        r = ("01 00 00 00 AC F4 A1 4D 92 D2 E2 04 87 BA 8E 6B"
+             "69 E0 D2 3C DE 31 98 0B 42 D7 03 64 16 61 20 50"
+             "EB C1 E3 77 9C 7F D5 5F 14 A8 92 F4").replace(" ", "").decode("hex")
 
         self.assertEquals(crypto.SystemFunction005(secret, key), r)
 
