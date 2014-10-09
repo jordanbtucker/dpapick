@@ -82,7 +82,7 @@ class Regedit(object):
         rv = None
         if self.policy["value"] > 1.09:
             currentKey, self.lsakeys = crypto.decrypt_lsa_key_nt6(lsakey, self.syskey)
-            rv = self.lsakeys[c]["key"]
+            rv = self.lsakeys[currentKey]["key"]
         else:
             self.lsakeys = crypto.decrypt_lsa_key_nt5(lsakey, self.syskey)
             rv = self.lsakeys[1]
