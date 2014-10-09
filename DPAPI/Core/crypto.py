@@ -255,7 +255,7 @@ def SystemFunction005(secret, key):
     return decrypted_data[8:8 + dec_data_len]
 
 
-def decrypt_lsa_secret(secret, lsa_keys, algo=3):
+def decrypt_lsa_secret(secret, lsa_keys):
     """This function replaces SystemFunction005 for newer Windows"""
     keyid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % struct.unpack("<L2H8B", secret[4:20])
     if keyid not in lsa_keys:

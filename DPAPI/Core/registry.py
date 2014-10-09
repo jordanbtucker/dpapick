@@ -31,7 +31,6 @@ class Regedit(object):
     def __init__(self):
         self.syskey = None
         self.lsakeys = None
-        self.algo = 3
         self.policy = {"major": 0, "minor": 0, "value": 0}
         self.lsa_secrets = {}
 
@@ -83,7 +82,7 @@ class Regedit(object):
         rv = None
         if self.policy["value"] > 1.09:
             currentKey, self.lsakeys = crypto.decrypt_lsa_key_nt6(lsakey, self.syskey)
-            rv = currentKey
+            rv = self.lsakeys[c]["key"]
         else:
             self.lsakeys = crypto.decrypt_lsa_key_nt5(lsakey, self.syskey)
             rv = self.lsakeys[1]
@@ -111,7 +110,7 @@ class Regedit(object):
         for k, v in secrets.iteritems():
             if self.policy["value"] > 1.09:
                 # NT6
-                self.lsa_secrets[k] = crypto.decrypt_lsa_secret(v, self.lsakeys, self.algo)
+                self.lsa_secrets[k] = crypto.decrypt_lsa_secret(v, self.lsakeys)
             else:
                 self.lsa_secrets[k] = crypto.SystemFunction005(v[0xc:], currentKey)
         return self.lsa_secrets
