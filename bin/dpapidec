@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#############################################################################
+# ############################################################################
 ##                                                                         ##
 ## This file is part of DPAPIck                                            ##
 ## Windows DPAPI decryption & forensic toolkit                             ##
@@ -10,7 +10,7 @@
 ## This document is the property of Cassidian SAS, it may not be copied or ##
 ## circulated without prior licence                                        ##
 ##                                                                         ##
-##  Author: Jean-Michel Picod <jean-michel.picod@cassidian.com>            ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
 ##                                                                         ##
 ## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
 ##                                                                         ##
@@ -39,44 +39,44 @@ if __name__ == "__main__":
     mkp = masterkey.MasterKeyPool()
     for k in os.listdir(options.masterkeydir):
         if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
-	    mkdata = open(os.path.join(options.masterkeydir, k), 'rb').read()
-	    mkp.addMasterKey(mkdata)
+            mkdata = open(os.path.join(options.masterkeydir, k), 'rb').read()
+            mkp.addMasterKey(mkdata)
 
     for b in args:
-	blob = blob.DPAPIBlob(open(b, 'rb').read())
+        blob = blob.DPAPIBlob(open(b, 'rb').read())
 
         print "BLOB GUID=%r" % blob.guids
         for key_guid in blob.guids:
-            
+
             mks = mkp.getMasterKeys(key_guid)
             if mks:
                 break
         else:
-            print >>sys.stderr,"Master key not found for blob %s (guid=%r)" % (b,blob.guids)
+            print >> sys.stderr, "Master key not found for blob %s (guid=%r)" % (b, blob.guids)
             continue
-        
+
         print "Found %i keys:" % len(mks)
         print "Attempting to unlock with password:"
         for mk in mks:
-            mk.decryptWithPassword(options.sid,options.password)
+            mk.decryptWithPassword(options.sid, options.password)
             if mk.decrypted:
                 break
         else:
             for mk in mks:
                 credent = chf.entries.get(mk.credhist.guid)
                 if credent is not None:
-                    print "--- cred entry matching:",mk.credhist.guid
+                    print "--- cred entry matching:", mk.credhist.guid
                     print repr(credent)
                     if credent.pwdhash is None:
                         print "Alas, cred entry was not decrypted"
                     else:
                         break
             else:
-                print >>sys.stderr, "No credentials found to decrypt masterkeys"
+                print >> sys.stderr, "No credentials found to decrypt masterkeys"
                 continue
 
             print "Attempt to decrypt masterkey:"
-            mk.decryptWithHash(str(credent.userSID),credent.pwdhash)
+            mk.decryptWithHash(str(credent.userSID), credent.pwdhash)
 
         print repr(mk)
 
