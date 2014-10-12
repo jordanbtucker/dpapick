@@ -65,6 +65,8 @@ class Regedit(object):
 
         """
         lsakey = ""
+        if self.syskey is None:
+            raise ValueError("Must provide syskey or call get_syskey() method first")
         with open(security, 'rb') as f:
             r = Registry.Registry(f)
             rev = eater.Eater(r.open("Policy\\PolRevision").value("(default)").value())
