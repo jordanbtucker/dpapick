@@ -100,24 +100,26 @@ class Regedit(object):
         """
         self.get_syskey(system)
         currentKey = self.get_lsa_key(security)
-        secrets = {}
+        self.lsa_secrets = {}
         with open(security, 'rb') as f:
             r = Registry.Registry(f)
             r2 = r.open("Policy\\Secrets")
             for i in r2.subkeys():
-                secrets[i.name()] = {}
+                self.lsa_secrets[i.name()] = {}
                 for j in i.subkeys():
-                    secrets[i.name()][j.name()] = j.value('(default)').value()
-        for k, v in secrets.iteritems():
+                    self.lsa_secrets[i.name()][j.name()] = j.value('(default)').value()
+        for k, v in self.lsa_secrets.iteritems():
             for s in ["CurrVal", "OldVal"]:
-                if self.policy["value"] > 1.09:
-                    # NT6
-                    self.lsa_secrets[k][s] = crypto.decrypt_lsa_secret(v[s], self.lsakeys)
-                else:
-                    self.lsa_secrets[k][s] = crypto.SystemFunction005(v[s][0xc:], currentKey)
+                if v[s] != "":
+                    if self.policy["value"] > 1.09:
+                        # NT6
+                        self.lsa_secrets[k][s] = crypto.decrypt_lsa_secret(v[s], self.lsakeys)
+                    else:
+                        self.lsa_secrets[k][s] = crypto.SystemFunction005(v[s][0xc:], currentKey)
             for s in ["OupdTime", "CupdTime"]:
                 if self.lsa_secrets[k][s] > 0:
-                    self.lsa_secrets[k][s] = (self.lsa_secrets[k][s] / 10000000) - 11644473600
+                    t = eater.Eater(self.lsa_secrets[k][s])
+                    self.lsa_secrets[k][s] = (t.eat("Q") / 10000000) - 11644473600
 
         return self.lsa_secrets
 
