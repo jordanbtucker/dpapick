@@ -105,14 +105,20 @@ class Regedit(object):
             r = Registry.Registry(f)
             r2 = r.open("Policy\\Secrets")
             for i in r2.subkeys():
-                val = i.subkey("CurrVal").value('(default)').value()
-                secrets[i.name()] = val
+                secrets[i.name()] = {}
+                for j in i.subkeys():
+                    secrets[i.name()][j.name()] = j.value('(default)').value()
         for k, v in secrets.iteritems():
-            if self.policy["value"] > 1.09:
-                # NT6
-                self.lsa_secrets[k] = crypto.decrypt_lsa_secret(v, self.lsakeys)
-            else:
-                self.lsa_secrets[k] = crypto.SystemFunction005(v[0xc:], currentKey)
+            for s in ["CurrVal", "OldVal"]:
+                if self.policy["value"] > 1.09:
+                    # NT6
+                    self.lsa_secrets[k][s] = crypto.decrypt_lsa_secret(v[s], self.lsakeys)
+                else:
+                    self.lsa_secrets[k][s] = crypto.SystemFunction005(v[s][0xc:], currentKey)
+            for s in ["OupdTime", "CupdTime"]:
+                if self.lsa_secrets[k][s] > 0:
+                    self.lsa_secrets[k][s] = (self.lsa_secrets[k][s] / 10000000) - 11644473600
+
         return self.lsa_secrets
 
 # vim:ts=4:expandtab:sw=4
