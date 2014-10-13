@@ -25,6 +25,11 @@ from DPAPI.Core import eater
 
 class RPC_SID(eater.DataStruct):
     """Represents a RPC_SID structure. See MSDN for documentation"""
+    def __init__(self, raw=None):
+        self.version = None
+        self.idAuth = None
+        self.subAuth = None
+        eater.DataStruct.__init__(self, raw)
 
     def parse(self, data):
         self.version = data.eat("B")
@@ -78,6 +83,18 @@ class CredhistEntry(eater.DataStruct):
     def __init__(self, raw=None):
         self.pwdhash = None
         self.hmac = None
+        self.revision = None
+        self.hashAlgo = None
+        self.rounds = None
+        self.cipherAlgo = None
+        self.dataLen = None
+        self.hmacLen = None
+        self.iv = None
+        self.userSID = None
+        self.encrypted = None
+        self.revision2 = None
+        self.guid = None
+        self.ntlm = None
         eater.DataStruct.__init__(self, raw)
 
     def __getstate__(self):
@@ -180,9 +197,10 @@ class CredHistFile(eater.DataStruct):
     """
     def __init__(self, raw=None):
         self.entries_list = []
-        self.entries = { }
+        self.entries = {}
         self.valid = False
-
+        self.footmagic = None
+        self.curr_guid = None
         eater.DataStruct.__init__(self, raw)
 
     def parse(self, data):
