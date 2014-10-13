@@ -30,6 +30,21 @@ class DPAPIBlob(eater.DataStruct):
             parse().
 
         """
+        self.version = None
+        self.provider = None
+        self.guids = []
+        self.flags = None
+        self.description = None
+        self.cipherAlgo = None
+        self.keyLen = 0
+        self.data = None
+        self.strong = None
+        self.hashAlgo = None
+        self.hashLen = 0
+        self.cipherText = None
+        self.salt = None
+        self.blob = None
+        self.crc = None
         self.cleartext = None
         self.decrypted = False
         self.crcComputed = None
@@ -69,7 +84,6 @@ class DPAPIBlob(eater.DataStruct):
 
         ## For HMAC computation
         self.blob = data.raw[blobStart:data.ofs]
-
         self.crc = data.eat_length_and_string("L")
 
     def decrypt(self, masterkey, entropy=None, strongPassword=None):
