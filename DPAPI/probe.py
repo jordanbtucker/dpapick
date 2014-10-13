@@ -55,7 +55,6 @@ class DPAPIProbe(eater.DataStruct):
         if self.dpapiblob.decrypted:
             self.cleartext = self.dpapiblob.cleartext
 
-
     def try_decrypt_system(self, mkeypool, **k):
         """Decryption loop for SYSTEM account protected blob. eg. wifi blobs.
             Basic probes should not overload this function.
@@ -77,7 +76,6 @@ class DPAPIProbe(eater.DataStruct):
                         return True
         return False
 
- 
     def try_decrypt_with_hash(self, h, mkeypool, sid, **k):
         """Decryption loop for general blobs with given user's password hash.
             This function will call preprocess() first, then tries to decrypt.
