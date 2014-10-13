@@ -129,7 +129,8 @@ def CryptSessionKeyXP(masterkey, nonce, hashAlgo, entropy=None, strongPassword=N
     :returns: decryption key
     :rtype : str
     """
-    masterkey = hashlib.sha1(masterkey).digest()
+    if len(masterkey) > 20:
+        masterkey = hashlib.sha1(masterkey).digest()
 
     masterkey += "\x00" * hashAlgo.blockSize
     ipad = "".join(chr(ord(masterkey[i]) ^ 0x36) for i in range(hashAlgo.blockSize))
@@ -162,7 +163,8 @@ def CryptSessionKeyWin7(masterkey, nonce, hashAlgo, entropy=None, strongPassword
     :returns: decryption key
     :rtype : str
     """
-    masterkey = hashlib.sha1(masterkey).digest()
+    if len(masterkey) > 20:
+        masterkey = hashlib.sha1(masterkey).digest()
 
     digest = M2Crypto.EVP.HMAC(masterkey, hashAlgo.name)
     digest.update(nonce)
