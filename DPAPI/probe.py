@@ -101,6 +101,8 @@ class DPAPIProbe(eater.DataStruct):
                         mkeypool.creds[sid].decryptWithHash(h)
                         for cred in mkeypool.creds[sid].entries_list:
                             mk.decryptWithHash(sid, cred.pwdhash)
+                            if cred.ntlm is not None and not mk.decrypted:
+                                mk.decryptWithHash(sid, cred.ntlm)
                             if mk.decrypted:
                                 mkeypool.creds[sid].validate()
                                 break
@@ -118,7 +120,28 @@ class DPAPIProbe(eater.DataStruct):
             Return True/False upon decryption success/failure.
 
         """
-        return self.try_decrypt_with_hash(hashlib.sha1(password.encode("UTF-16LE")).digest(), mkeypool, sid, **k)
+        self.preprocess(**k)
+        for kguid in self.dpapiblob.guids:
+            mks = mkeypool.getMasterKeys(kguid)
+            for mk in mks:
+                mk.decryptWithPassword(sid, password)
+                if mk.decrypted is False:
+                    # # try credhist if one is loaded
+                    if mkeypool.creds.get(sid) is not None:
+                        mkeypool.creds[sid].decryptWithPassword(password)
+                        for cred in mkeypool.creds[sid].entries_list:
+                            mk.decryptWithHash(sid, cred.pwdhash)
+                            if cred.ntlm is not None and not mk.decrypted:
+                                mk.decryptWithHash(sid, cred.ntlm)
+                            if mk.decrypted:
+                                mkeypool.creds[sid].validate()
+                                break
+                if mk.decrypted:
+                    self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
+                    if self.dpapiblob.decrypted:
+                        self.postprocess(**k)
+                        return True
+        return False
 
 # vim:ts=4:expandtab:sw=4
 
