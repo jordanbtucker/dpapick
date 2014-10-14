@@ -47,7 +47,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     mkp = masterkey.MasterKeyPool()
-    mkp.loadDirectory(options.masterkeydir)
+    if options.masterkeydir:
+        mkp.loadDirectory(options.masterkeydir)
     if options.credhist and options.sid:
         mkp.addCredhistFile(options.sid, options.credhist)
 
