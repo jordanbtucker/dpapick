@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# ############################################################################
+##                                                                         ##
+## This file is part of DPAPIck                                            ##
+## Windows DPAPI decryption & forensic toolkit                             ##
+##                                                                         ##
+##                                                                         ##
+## Copyright (C) 2010, 2011 Cassidian SAS. All rights reserved.            ##
+## This document is the property of Cassidian SAS, it may not be copied or ##
+## circulated without prior licence                                        ##
+##                                                                         ##
+##  Author: Jean-Michel Picod <jmichel.p@gmail.com>                        ##
+##                                                                         ##
+## This program is distributed under GPLv3 licence (see LICENCE.txt)       ##
+##                                                                         ##
+#############################################################################
+##                                                                         ##
+## iCloud Apple token decryption                                           ##
+##                                                                         ##
+##  Author: Francesco Picasso <francesco.picasso@gmail.com>                ##
+##                                                                         ##
+#############################################################################
+
+from DPAPI.Core import masterkey
+from DPAPI.Probes import icloud
+from optparse import OptionParser
+import CFPropertyList
+
+import base64
+import hashlib
+import re
+import struct
+import os
+import sys
+
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option("--sid", metavar="SID", dest="sid")
+    parser.add_option("--masterkey", metavar="DIRECTORY", dest="masterkeydir")
+    # TODO: add credential history.
+    #parser.add_option("--credhist", metavar="FILE", dest="credhist")
+    parser.add_option("--password", metavar="PASSWORD", dest="password")
+    parser.add_option("--hash", metavar="HASH", dest="h")
+    parser.add_option("--aoskit", metavar="AOSKIT", dest="aoskit")
+    parser.add_option("--fout", metavar="FOUT", dest="fout")
+
+    (options, args) = parser.parse_args()
+
+    if not options.aoskit:
+        print >> sys.stderr, "Please provide the com.apple.AOSKit.plist file"
+        sys.exit(1)
+    if not options.fout:
+        print >> sys.stderr, "Please provide the filename (no ext) for the output"
+        sys.exit(1)
+    if options.password and options.h:
+        print >> sys.stderr, "Choose either password or hash option"
+        sys.exit(1)
+    if options.password:
+        options.h = hashlib.sha1(options.password.encode("UTF-16LE")).hexdigest()
+    options.h = options.h.decode('hex')
+
+    mkp = masterkey.MasterKeyPool()
+    for k in os.listdir(options.masterkeydir):
+        if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
+            mkdata = open(os.path.join(options.masterkeydir, k), 'rb').read()
+            mkp.addMasterKey(mkdata)
+
+    # TODO: add exception/error management.
+    with open(options.aoskit, 'rb') as f:
+        plist = CFPropertyList.CFPropertyList(f)
+        plist.load()
+        plist_values = CFPropertyList.native_types(plist.value)
+        account = plist_values.keys()[0]
+        plist_data_dict = plist_values[account]
+        plist_blob = plist_data_dict['data']       
+        datablob = icloud.iCloud(account, plist_blob)
+        datablob.try_decrypt_with_hash(options.h, mkp, options.sid)
+        print datablob
+        if datablob.decrypted:
+            fout_name = options.fout + '.plist'
+            with open(fout_name, 'wb') as fo:
+                fo.write(datablob.decrypted)
+            print 'Decrypted plist written in file \"{}\"'.format(fout_name)
+
+# vim:ts=4:expandtab:sw=4
