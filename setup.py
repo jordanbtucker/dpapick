@@ -54,7 +54,7 @@ setup(
         "Topic :: System :: Recovery Tools"
     ],
     test_suite='tests.all',
-    dependency_links=["git+http://github.com/bencochran/CFPropertyList"],
+    dependency_links=["git+https://github.com/bencochran/CFPropertyList.git@master#egg=CFPropertyList"],
     zip_safe=False,
     use_2to3=True,
 )
