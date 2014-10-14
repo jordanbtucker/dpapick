@@ -63,12 +63,10 @@ class DPAPIProbe(eater.DataStruct):
 
         """
         self.preprocess(**k)
+        mkeypool.try_credential(None, None)
         for kguid in self.dpapiblob.guids:
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
-                mk.decryptWithKey(mkeypool.system.user)
-                if mk.decrypted is False:
-                    mk.decryptWithKey(mkeypool.system.machine)
                 if mk.decrypted:
                     self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
                     if self.dpapiblob.decrypted:
@@ -91,21 +89,10 @@ class DPAPIProbe(eater.DataStruct):
 
         """
         self.preprocess(**k)
+        mkeypool.try_credential_hash(sid, h)
         for kguid in self.dpapiblob.guids:
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
-                mk.decryptWithHash(sid, h)
-                if mk.decrypted is False:
-                    ## try credhist if one is loaded
-                    if mkeypool.creds.get(sid) is not None:
-                        mkeypool.creds[sid].decryptWithHash(h)
-                        for cred in mkeypool.creds[sid].entries_list:
-                            mk.decryptWithHash(sid, cred.pwdhash)
-                            if cred.ntlm is not None and not mk.decrypted:
-                                mk.decryptWithHash(sid, cred.ntlm)
-                            if mk.decrypted:
-                                mkeypool.creds[sid].validate()
-                                break
                 if mk.decrypted:
                     self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
                     if self.dpapiblob.decrypted:
@@ -121,21 +108,10 @@ class DPAPIProbe(eater.DataStruct):
 
         """
         self.preprocess(**k)
+        mkeypool.try_credential(sid, password)
         for kguid in self.dpapiblob.guids:
             mks = mkeypool.getMasterKeys(kguid)
             for mk in mks:
-                mk.decryptWithPassword(sid, password)
-                if mk.decrypted is False:
-                    # # try credhist if one is loaded
-                    if mkeypool.creds.get(sid) is not None:
-                        mkeypool.creds[sid].decryptWithPassword(password)
-                        for cred in mkeypool.creds[sid].entries_list:
-                            mk.decryptWithHash(sid, cred.pwdhash)
-                            if cred.ntlm is not None and not mk.decrypted:
-                                mk.decryptWithHash(sid, cred.ntlm)
-                            if mk.decrypted:
-                                mkeypool.creds[sid].validate()
-                                break
                 if mk.decrypted:
                     self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
                     if self.dpapiblob.decrypted:

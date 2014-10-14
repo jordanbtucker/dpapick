@@ -409,6 +409,37 @@ class MasterKeyPool(object):
             return cPickle.load(filename)
         raise ValueError("must provide either data or filename argument")
 
+    def try_credential_hash(self, userSID, pwdhash):
+        n = 0
+        for mkl in self.keys.values():
+            for mk in mkl:
+                if not mk.decrypted:
+                    if pwdhash is not None:
+                        mk.decryptWithHash(userSID, pwdhash)
+                        if not mk.decrypted and self.creds.get(userSID) is not None:
+                            # process CREDHIST
+                            self.creds[userSID].decryptWithHash(pwdhash)
+                            for cred in self.creds[userSID].entries_list:
+                                mk.decryptWithHash(userSID, cred.pwdhash)
+                                if cred.ntlm is not None and not mk.decrypted:
+                                    mk.decryptWithHash(userSID, cred.ntlm)
+                                if mk.decrypted:
+                                    self.creds[userSID].validate()
+                                    break
+                    if not mk.decrypted and self.system is not None:
+                        # try DPAPI_SYSTEM creds
+                        mk.decryptWithKey(self.system.user)
+                        if not mk.decrypted:
+                            mk.decryptWithKey(self.system.machine)
+                        if userSID is not None and not mk.decrypted:
+                            # try with an extra SID (just in case)
+                            mk.decryptWithHash(userSID, self.system.user)
+                            if not mk.decrypted:
+                                mk.decryptWithHash(userSID, self.system.machine)
+                    if mk.decrypted:
+                        n += 1
+        return n
+
     def try_credential(self, userSID, password):
         """This function tries to decrypt every masterkey contained in the pool
         that has not been successfully decrypted yet with the given password and
@@ -425,7 +456,27 @@ class MasterKeyPool(object):
         for mkl in self.keys.values():
             for mk in mkl:
                 if not mk.decrypted:
-                    mk.decryptWithPassword(userSID, password)
+                    if password is not None:
+                        mk.decryptWithPassword(userSID, password)
+                        if not mk.decrypted and self.creds.get(userSID) is not None:
+                            # process CREDHIST
+                            self.creds[userSID].decryptWithPassword(password)
+                            for cred in self.creds[userSID].entries_list:
+                                mk.decryptWithHash(userSID, cred.pwdhash)
+                                if cred.ntlm is not None and not mk.decrypted:
+                                    mk.decryptWithHash(userSID, cred.ntlm)
+                                if mk.decrypted:
+                                    self.creds[userSID].validate()
+                                    break
+                    if not mk.decrypted and self.system is not None:
+                        # try DPAPI_SYSTEM creds
+                        mk.decryptWithHash(userSID, self.system.user)
+                        if not mk.decrypted:
+                            mk.decryptWithHash(userSID, self.system.machine)
+                        if not mk.decrypted:
+                            mk.decryptWithKey(self.system.user)
+                        if not mk.decrypted:
+                            mk.decryptWithKey(self.system.machine)
                     if mk.decrypted:
                         self.passwords.add(password)
                         n += 1
