@@ -87,8 +87,8 @@ class CredhistEntry(eater.DataStruct):
         self.hashAlgo = None
         self.rounds = None
         self.cipherAlgo = None
-        self.dataLen = None
-        self.hmacLen = None
+        self.shaHashLen = None
+        self.ntHashLen = None
         self.iv = None
         self.userSID = None
         self.encrypted = None
@@ -116,14 +116,14 @@ class CredhistEntry(eater.DataStruct):
         self.rounds = data.eat("L")
         data.eat("L")
         self.cipherAlgo = crypto.CryptoAlgo(data.eat("L"))
-        self.dataLen = data.eat("L")
-        self.hmacLen = data.eat("L")
+        self.shaHashLen = data.eat("L")
+        self.ntHashLen = data.eat("L")
         self.iv = data.eat("16s")
 
         self.userSID = RPC_SID()
         self.userSID.parse(data)
 
-        n = self.dataLen + self.hmacLen
+        n = self.shaHashLen + self.ntHashLen
         n += -n % self.cipherAlgo.blockSize
         self.encrypted = data.eat_string(n)
 
@@ -134,8 +134,8 @@ class CredhistEntry(eater.DataStruct):
         """Decrypts this credhist entry using the given encryption key."""
         cleartxt = crypto.dataDecrypt(self.cipherAlgo, self.hashAlgo, self.encrypted,
                                       enckey, self.iv, self.rounds)
-        self.pwdhash = cleartxt[:self.dataLen]
-        self.ntlm = cleartxt[self.dataLen:self.dataLen + self.hmacLen].rstrip("\x00")
+        self.pwdhash = cleartxt[:self.shaHashLen]
+        self.ntlm = cleartxt[self.shaHashLen:self.shaHashLen + self.ntHashLen].rstrip("\x00")
         if len(self.ntlm) != 16:
             self.ntlm = None
 
@@ -171,15 +171,15 @@ class CredhistEntry(eater.DataStruct):
 
     def __repr__(self):
         s = ["CredHist entry",
-             "\trevision = %x\n" % self.revision,
-             "\thash     = %r" % self.hashAlgo,
-             "\trounds   = %i" % self.rounds,
-             "\tcipher   = %r" % self.cipherAlgo,
-             "\tdataLen  = %i" % self.dataLen,
-             "\thmacLen  = %i" % self.hmacLen,
-             "\tuserSID  = %s" % self.userSID,
-             "\tguid     = %s" % self.guid,
-             "\tiv       = %s" % self.iv.encode("hex")]
+             "\trevision   = %x\n" % self.revision,
+             "\thash       = %r" % self.hashAlgo,
+             "\trounds     = %i" % self.rounds,
+             "\tcipher     = %r" % self.cipherAlgo,
+             "\tshaHashLen = %i" % self.shaHashLen,
+             "\tntHashLen  = %i" % self.ntHashLen,
+             "\tuserSID    = %s" % self.userSID,
+             "\tguid       = %s" % self.guid,
+             "\tiv         = %s" % self.iv.encode("hex")]
         if self.pwdhash is not None:
             s.append("\tpwdhash  = %s" % self.pwdhash.encode("hex"))
         if self.ntlm is not None:

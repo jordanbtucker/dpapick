@@ -18,7 +18,6 @@
 #############################################################################
 
 import hashlib
-import hmac
 import struct
 import array
 import M2Crypto
@@ -177,15 +176,14 @@ def CryptSessionKeyWin7(masterkey, nonce, hashAlgo, entropy=None, strongPassword
 
 def CryptDeriveKey(h, cipherAlgo, hashAlgo):
     """Internal use. Mimics the corresponding native Microsoft function"""
-    _dg = getattr(hashlib, hashAlgo.name)
     if len(h) > hashAlgo.blockSize:
-        h = _dg(h).digest()
+        h = hashlib.new(hashAlgo.name, h).digest()
     if len(h) >= cipherAlgo.keyLength:
         return h
     h += "\x00" * hashAlgo.blockSize
     ipad = "".join(chr(ord(h[i]) ^ 0x36) for i in range(hashAlgo.blockSize))
     opad = "".join(chr(ord(h[i]) ^ 0x5c) for i in range(hashAlgo.blockSize))
-    k = _dg(ipad).digest() + _dg(opad).digest()
+    k = hashlib.new(hashAlgo.name, ipad).digest() + hashlib.new(hashAlgo.name, opad).digest()
     k = cipherAlgo.do_fixup_key(k)
     return k
 
@@ -294,14 +292,7 @@ def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
 
 def derivePwdHash(pwdhash, userSID, digest='sha1'):
     """Internal use. Computes the encryption key from a user's password hash"""
-    dg = getattr(hashlib, digest)
-    encKey = hmac.new(pwdhash, (userSID + "\0").encode("UTF-16LE"), dg).digest()
-    return encKey
-
-
-def derivePassword(userPwd, userSID):
-    """Internal use. Computes the encryption key from a user's password"""
-    return derivePwdHash(hashlib.sha1(userPwd.encode("UTF-16LE")).digest(), userSID)
+    return M2Crypto.EVP.hmac(pwdhash, (userSID + "\0").encode("UTF-16LE"), digest)
 
 
 def dataDecrypt(cipherAlgo, hashAlgo, raw, encKey, iv, rounds):
