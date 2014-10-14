@@ -30,13 +30,12 @@
 
 from DPAPI import probe
 from DPAPI.Core import blob
-
-import hmac
 import M2Crypto
+
 
 class Dropbox(probe.DPAPIProbe):
     """Dropbox DBX password decryptor, Version 0"""
-  
+
     # TODO: make a better versioning.
     V0_HMAC_KEY = '\xd1\x14\xa5R\x12e_t\xbdw.7\xe6J\xee\x9b'
     V0_APP_KEY = '\rc\x8c\t.\x8b\x82\xfcE(\x83\xf9_5[\x8e'
@@ -45,31 +44,28 @@ class Dropbox(probe.DPAPIProbe):
     V0_USER_KEYLEN = 16
     V0_DB_KEYLEN = 16
 
-    def __init__(self, version, raw, crc, ks):
-        super(probe.DPAPIProbe, self).__init__(raw)
-        self.version = version
-        self.crc = crc
-        self.ks = ks
+    def parse(self, data):
         self.crc_ok = False
-        self.entropy = self.V0_HMAC_KEY
         self.user_key = None
         self.dbx_key = None
- 
-    def preprocess(self, **k):
-        hm = hmac.new(self.V0_HMAC_KEY)
-        if hm.digest_size == len(self.crc):
-            hm.update(self.ks[:-hm.digest_size])
-            if hm.digest() == self.crc:
-                self.crc_ok = True
+        data.pop("B")
+        self.raw = data.remain()
+        data.eat("B")
+        dpapi_len = data.eat("L")
+        self.version = data.eat("B")
+        data.eat("L")
+        self.datablob = blob.DPAPIBlob(data.eat_string(dpapi_len))
+        self.crc = data.eat_string(16)
 
-    def parse(self, data):
-        self.dpapiblob = blob.DPAPIBlob(data.remain())
-        
+    def preprocess(self, **k):
+        self.entropy = self.V0_HMAC_KEY
+        hm = M2Crypto.EVP.HMAC(self.V0_HMAC_KEY, self.raw[:-len(self.crc)], "md5")
+        self.crc_ok = hm == self.crc
+
     def postprocess(self, **k):
         if self.dpapiblob.decrypted:
             self.user_key = self.dpapiblob.cleartext
-            self.dbx_key = M2Crypto.EVP.pbkdf2(
-                    self.user_key, self.V0_APP_KEY, self.V0_APP_ITER, self.V0_DB_KEYLEN)
+            self.dbx_key = M2Crypto.EVP.pbkdf2(self.user_key, self.V0_APP_KEY, self.V0_APP_ITER, self.V0_DB_KEYLEN)
 
     def __getattr__(self, name):
         return getattr(self.dpapiblob, name)

@@ -28,10 +28,6 @@ from DPAPI.Core import registry
 from DPAPI.Probes import dropbox
 from optparse import OptionParser
 
-import hashlib
-import re
-import struct
-import os
 import sys
 
 
@@ -39,8 +35,7 @@ if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--sid", metavar="SID", dest="sid")
     parser.add_option("--masterkey", metavar="DIRECTORY", dest="masterkeydir")
-    # TODO: add credential history.
-    #parser.add_option("--credhist", metavar="FILE", dest="credhist")
+    parser.add_option("--credhist", metavar="FILE", dest="credhist")
     parser.add_option("--password", metavar="PASSWORD", dest="password")
     parser.add_option("--hash", metavar="HASH", dest="h")
     parser.add_option("--ntuser", metavar="NTUSER", dest="ntuser")
@@ -50,26 +45,21 @@ if __name__ == "__main__":
     if options.password and options.h:
         print >> sys.stderr, "Choose either password or hash option"
         sys.exit(1)
-    if options.password:
-        options.h = hashlib.sha1(options.password.encode("UTF-16LE")).hexdigest()
-    options.h = options.h.decode('hex')
 
     mkp = masterkey.MasterKeyPool()
-    for k in os.listdir(options.masterkeydir):
-        if re.match("^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$", k, re.IGNORECASE):
-            mkdata = open(os.path.join(options.masterkeydir, k), 'rb').read()
-            mkp.addMasterKey(mkdata)
+    mkp.loadDirectory(options.masterkeydir)
+    if options.credhist and options.sid:
+        mkp.addCredhistFile(options.sid, options.credhist)
 
     # TODO: add exception/error management.
     with open(options.ntuser, 'rb') as f:
         r = registry.Registry.Registry(f)
-        ks1 = r.open('Software\\Dropbox\\ks1').value('Client').value()
-        ks1 = ks1[:-1]  # TODO: it's better a check for it, don't assume it's there.
-        version, dpapi_len = struct.unpack_from('BL', ks1)
-        crc_size = len(ks1) - dpapi_len - 8
-        ver, _, blob, crc = struct.unpack('BL%ds%ds' % (dpapi_len, crc_size), ks1)
-        datablob = dropbox.Dropbox(ver, blob, crc, ks1)
-        datablob.try_decrypt_with_hash(options.h, mkp, options.sid)
+        datablob = dropbox.Dropbox(r.open('Software\\Dropbox\\ks1').value('Client').value())
+
+        if options.h:
+            datablob.try_decrypt_with_hash(options.h, mkp, options.sid)
+        if options.password:
+            datablob.try_decrypt_with_password(options.password, mkp, options.sid)
         print datablob
 
 # vim:ts=4:expandtab:sw=4
