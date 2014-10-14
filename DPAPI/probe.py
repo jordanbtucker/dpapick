@@ -90,14 +90,13 @@ class DPAPIProbe(eater.DataStruct):
         """
         self.preprocess(**k)
         mkeypool.try_credential_hash(sid, h)
-        for kguid in self.dpapiblob.guids:
-            mks = mkeypool.getMasterKeys(kguid)
-            for mk in mks:
-                if mk.decrypted:
-                    self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
-                    if self.dpapiblob.decrypted:
-                        self.postprocess(**k)
-                        return True
+        mks = mkeypool.getMasterKeys(self.dpapiblob.mkguid)
+        for mk in mks:
+            if mk.decrypted:
+                self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
+                if self.dpapiblob.decrypted:
+                    self.postprocess(**k)
+                    return True
         return False
 
     def try_decrypt_with_password(self, password, mkeypool, sid, **k):
@@ -109,14 +108,13 @@ class DPAPIProbe(eater.DataStruct):
         """
         self.preprocess(**k)
         mkeypool.try_credential(sid, password)
-        for kguid in self.dpapiblob.guids:
-            mks = mkeypool.getMasterKeys(kguid)
-            for mk in mks:
-                if mk.decrypted:
-                    self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
-                    if self.dpapiblob.decrypted:
-                        self.postprocess(**k)
-                        return True
+        mks = mkeypool.getMasterKeys(self.dpapiblob.mkguid)
+        for mk in mks:
+            if mk.decrypted:
+                self.dpapiblob.decrypt(mk.get_key(), self.entropy, k.get("strong", None))
+                if self.dpapiblob.decrypted:
+                    self.postprocess(**k)
+                    return True
         return False
 
 # vim:ts=4:expandtab:sw=4
