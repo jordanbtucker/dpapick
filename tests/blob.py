@@ -52,11 +52,11 @@ class BlobXPSimpleTest(unittest.TestCase):
         self.assertEqual(self.blob.hashAlgo.algnum, 0x8004)
         self.assertEqual(self.blob.description, "DPAPIck simple blob generator\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 16)
         self.assertEqual(len(self.blob.salt), 16)
+        self.assertEqual(len(self.blob.hmac), 16)
         self.assertEqual(len(self.blob.strong), 0)
         self.assertEqual(len(self.blob.cipherText), 24)
-        self.assertEqual(len(self.blob.crc), 20)
+        self.assertEqual(len(self.blob.sign), 20)
 
     def test_decrypt_bad_key(self):
         self.blob.decrypt("", None, None)
@@ -72,7 +72,7 @@ class BlobXPSimpleTest(unittest.TestCase):
         self.blob.decrypt(self.mkey, None, None)
 
         self.assertTrue(self.blob.decrypted)
-        self.assertEqual(self.blob.crc, self.blob.crcComputed)
+        self.assertEqual(self.blob.sign, self.blob.signComputed)
         self.assertEqual(self.blob.cleartext, "This is for real !")
 
 
@@ -107,11 +107,11 @@ class BlobXPEntropyTest(unittest.TestCase):
         self.assertEqual(self.blob.hashAlgo.algnum, 0x8004)
         self.assertEqual(self.blob.description, "DPAPIck simple blob generator\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 16)
         self.assertEqual(len(self.blob.salt), 16)
+        self.assertEqual(len(self.blob.hmac), 16)
         self.assertEqual(len(self.blob.strong), 0)
         self.assertEqual(len(self.blob.cipherText), 32)
-        self.assertEqual(len(self.blob.crc), 20)
+        self.assertEqual(len(self.blob.sign), 20)
 
     def test_decrypt_bad_key(self):
         self.blob.decrypt("", None, None)
@@ -127,7 +127,7 @@ class BlobXPEntropyTest(unittest.TestCase):
         self.blob.decrypt(self.mkey, self.entropy, None)
 
         self.assertTrue(self.blob.decrypted)
-        self.assertEqual(self.blob.crc, self.blob.crcComputed)
+        self.assertEqual(self.blob.sign, self.blob.signComputed)
         self.assertEqual(self.blob.cleartext, "This entropy was not faked")
 
 
@@ -161,11 +161,11 @@ class BlobWin8SimpleTest(unittest.TestCase):
         self.assertEqual(self.blob.hashAlgo.algnum, 0x800e)
         self.assertEqual(self.blob.description, "\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 32)
         self.assertEqual(len(self.blob.salt), 32)
+        self.assertEqual(len(self.blob.hmac), 32)
         self.assertEqual(len(self.blob.strong), 0)
         self.assertEqual(len(self.blob.cipherText), 16)
-        self.assertEqual(len(self.blob.crc), 64)
+        self.assertEqual(len(self.blob.sign), 64)
 
     def test_decrypt_bad_key(self):
         self.blob.decrypt("", None, None)
@@ -181,7 +181,7 @@ class BlobWin8SimpleTest(unittest.TestCase):
         self.blob.decrypt(self.mkey, None, None)
 
         self.assertTrue(self.blob.decrypted)
-        self.assertEqual(self.blob.crc, self.blob.crcComputed)
+        self.assertEqual(self.blob.sign, self.blob.signComputed)
         self.assertEqual(self.blob.cleartext, "UberSecret\x00")
 
 
@@ -220,11 +220,11 @@ class BlobWin8EntropyTest(unittest.TestCase):
         self.assertEqual(self.blob.hashAlgo.algnum, 0x800e)
         self.assertEqual(self.blob.description, "pwd:fuffa; entropy(ascii)=UpToApp\x00")
         self.assertFalse(self.blob.decrypted)
-        self.assertEqual(len(self.blob.data), 32)
         self.assertEqual(len(self.blob.salt), 32)
+        self.assertEqual(len(self.blob.hmac), 32)
         self.assertEqual(len(self.blob.strong), 0)
         self.assertEqual(len(self.blob.cipherText), 16)
-        self.assertEqual(len(self.blob.crc), 64)
+        self.assertEqual(len(self.blob.sign), 64)
 
     def test_decrypt_bad_key(self):
         self.blob.decrypt("")
@@ -240,7 +240,7 @@ class BlobWin8EntropyTest(unittest.TestCase):
         self.blob.decrypt(self.mkey, self.entropy)
 
         self.assertTrue(self.blob.decrypted)
-        self.assertEqual(self.blob.crc, self.blob.crcComputed)
+        self.assertEqual(self.blob.sign, self.blob.signComputed)
         self.assertEqual(self.blob.cleartext, "UberSecret\x00")
 
 

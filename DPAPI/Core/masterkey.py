@@ -79,7 +79,10 @@ class MasterKey(eater.DataStruct):
         Simply computes the corresponding key, then calls self.decryptWithKey()
 
         """
-        self.decryptWithKey(crypto.derivePassword(pwd, userSID))
+        for algo in ["sha1", "md4"]:
+            self.decryptWithKey(crypto.derivePwdHash(hashlib.new(algo, pwd.encode("UTF-16LE")).digest(), userSID))
+            if self.decrypted:
+                break
 
     def setKeyHash(self, h):
         assert(len(h) == 20)
@@ -146,18 +149,18 @@ class CredHist(eater.DataStruct):
     """This class represents a Credhist block contained in the MasterKeyFile"""
 
     def __init__(self, raw=None):
-        self.magic = None
+        self.version = None
         self.guid = None
         eater.DataStruct.__init__(self, raw)
 
     def parse(self, data):
-        self.magic = data.eat("L")
+        self.version = data.eat("L")
         self.guid = "%0x-%0x-%0x-%0x%0x-%0x%0x%0x%0x%0x%0x" % data.eat("L2H8B")
 
     def __repr__(self):
         s = ["CredHist block",
-             "\tmagic = %d" % self.magic,
-             "\tguid  = %s" % self.guid]
+             "\tversion = %d" % self.version,
+             "\tguid    = %s" % self.guid]
         return "\n".join(s)
 
 
@@ -205,7 +208,7 @@ class MasterKeyFile(eater.DataStruct):
         self.decrypted = False
         self.version = None
         self.guid = None
-        self.flags = None
+        self.policy = None
         self.masterkeyLen = self.backupkeyLen = self.credhistLen = self.domainkeyLen = 0
         eater.DataStruct.__init__(self, raw)
 
@@ -214,7 +217,7 @@ class MasterKeyFile(eater.DataStruct):
         data.eat("2L")
         self.guid = data.eat("72s").decode("UTF-16LE").encode("utf-8")
         data.eat("2L")
-        self.flags = data.eat("L")
+        self.policy = data.eat("L")
         self.masterkeyLen = data.eat("Q")
         self.backupkeyLen = data.eat("Q")
         self.credhistLen = data.eat("Q")
@@ -243,7 +246,10 @@ class MasterKeyFile(eater.DataStruct):
 
     def decryptWithPassword(self, userSID, pwd):
         """See MasterKey.decryptWithPassword()"""
-        self.decryptWithHash(userSID, hashlib.sha1(pwd.encode('UTF-16LE')).digest())
+        for algo in ["sha1", "md4"]:
+            self.decryptWithHash(userSID, hashlib.new(algo, pwd.encode('UTF-16LE')).digest())
+            if self.decrypted:
+                break
 
     def decryptWithKey(self, pwdhash):
         """See MasterKey.decryptWithKey()"""
@@ -282,8 +288,8 @@ class MasterKeyFile(eater.DataStruct):
         s = ["\n#### MasterKeyFile %s ####" % self.guid]
         if self.version is not None:
             s.append("\tversion   = %#d" % self.version)
-        if self.flags is not None:
-            s.append("\tFlags     = %#x" % self.flags)
+        if self.policy is not None:
+            s.append("\tPolicy    = %#x" % self.policy)
         if self.masterkeyLen > 0:
             s.append("\tMasterKey = %d" % self.masterkeyLen)
         if self.backupkeyLen > 0:
@@ -325,7 +331,7 @@ class MasterKeyPool(object):
         self.keys[mkf.guid].append(mkf)
 
     def addMasterKeyHash(self, guid, h):
-        self.keys[guid].append(MasterKeyFile().setKeyHash(guid, h))
+        self.keys[guid].append(MasterKeyFile().addKeyHash(guid, h))
 
     def getMasterKeys(self, guid):
         """Returns an array of Masterkeys corresponding the the given GUID.

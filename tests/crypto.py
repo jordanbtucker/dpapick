@@ -323,9 +323,6 @@ class CryptoTest(unittest.TestCase):
     def test_derivePwdHash(self):
         self.assertEquals(crypto.derivePwdHash(self.hashpwd, self.sid), self.expected)
 
-    def test_derivePassword(self):
-        self.assertEquals(crypto.derivePassword(self.pwd, self.sid), self.expected)
-
     def test_dataDecrypt_aes256_sha512(self):
         r = ("ac23e4d5efcb8979f05fbcb275832a8d"
              "ee9576fbaae76a4de7ead2f313e84bf7"
