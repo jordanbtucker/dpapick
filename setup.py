@@ -21,7 +21,7 @@ from setuptools import setup
 
 
 setup(
-    name='DPAPI',
+    name='dpapick',
     version='0.3',
     packages=['DPAPI', 'DPAPI/Probes', 'DPAPI/Core'],
     scripts=['bin/dpapidec'],
