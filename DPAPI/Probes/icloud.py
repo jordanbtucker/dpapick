@@ -25,6 +25,7 @@
 
 from DPAPI import probe
 from DPAPI.Core import blob
+from DPAPI.Core import eater
 import CFPropertyList
 
 import struct
@@ -50,7 +51,7 @@ class iCloud(probe.DPAPIProbe):
             plist.load()
             plist_values = CFPropertyList.native_types(plist.value)
             self.account = plist_values.keys()[0]
-            plist_data_dict = plist_values[account]
+            plist_data_dict = plist_values[self.account]
             self.dpapiblob = blob.DPAPIBlob(plist_data_dict['data'])
 
     def parse(self, data):
