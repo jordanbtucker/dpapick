@@ -1,0 +1,6 @@
+include LICENCE.txt
+recursive-include tests *.py
+recursive-include 3rdparty *
+recursive-include depends *
+recursive-include examples *
+prune 3rdparty/*/build
