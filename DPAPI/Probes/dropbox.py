@@ -43,23 +43,21 @@ class Dropbox(probe.DPAPIProbe):
     V0_APP_ITER = 1066
     V0_USER_KEYLEN = 16
     V0_DB_KEYLEN = 16
+    V0_CRC_LEN = 16
 
     def parse(self, data):
         self.crc_ok = False
         self.user_key = None
         self.dbx_key = None
-        data.pop("B")
+        data.pop('B')
+        self.crc = data.pop_string(self.V0_CRC_LEN)
         self.raw = data.remain()
-        data.eat("B")
-        dpapi_len = data.eat("L")
-        self.version = data.eat("B")
-        data.eat("L")
-        self.datablob = blob.DPAPIBlob(data.eat_string(dpapi_len))
-        self.crc = data.eat_string(16)
+        self.version, dpapi_len = data.eat('LL')
+        self.dpapiblob = blob.DPAPIBlob(data.eat_string(dpapi_len))
 
     def preprocess(self, **k):
         self.entropy = self.V0_HMAC_KEY
-        hm = M2Crypto.EVP.HMAC(self.V0_HMAC_KEY, self.raw[:-len(self.crc)], "md5")
+        hm = M2Crypto.EVP.hmac(self.V0_HMAC_KEY, self.raw, 'md5')
         self.crc_ok = hm == self.crc
 
     def postprocess(self, **k):
