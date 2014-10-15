@@ -19,7 +19,6 @@
 
 import unittest
 import os
-import sys
 from DPAPI.Core import registry
 
 
