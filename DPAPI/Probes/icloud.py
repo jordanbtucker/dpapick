@@ -28,8 +28,6 @@ from DPAPI.Core import blob
 from DPAPI.Core import eater
 import CFPropertyList
 
-import struct
-
 
 class iCloud(probe.DPAPIProbe):
     """iCloud Apple token decryption"""
