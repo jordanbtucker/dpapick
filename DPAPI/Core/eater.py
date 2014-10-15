@@ -104,7 +104,7 @@ class Eater(object):
     
     def remain(self):
         """Returns all the bytes that have not been eated nor poped yet."""
-        return self.raw[self.ofs:]
+        return self.raw[self.ofs:self.end]
 
     def eat_sub(self, length):
         """Eats a sub-structure that is contained in the next length bytes"""
